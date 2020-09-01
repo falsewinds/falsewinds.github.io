@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0" />
+    <title>Auto Dungeon</title>
+    <style>
+div.wrapper
+{
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    display: block;
+}
+div.wrapper > canvas
+{
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+    </style>
+</head>
+
+<body>
+
+<div class="wrapper"><canvas id="Main"></canvas></div>
+<script type="text/javascript" src="scripts/dungeon.js"></script>
+
+<script type="text/javascript">
+DungeonMap.initialize("Main");
+var explore = function() {
+    var r = DungeonMap.update(15);
+    if (r) {
+        DungeonMap.draw();
+        setTimeout(explore,60);
+    }
+};
+explore();
+</script>
+
+</body>
+
+</html>

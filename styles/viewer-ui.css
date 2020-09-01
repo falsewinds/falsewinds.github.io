@@ -1,0 +1,79 @@
+form
+{
+    /*box-sizing: border-box;
+    padding: 5px;
+    background-color: #FFFFAA;*/
+}
+
+dl
+{
+    box-sizing: border-box;
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+dl > dt
+{
+    display: inline-block;
+    margin-bottom: 4px;
+    border-radius: 6px 0px 0px 6px;
+    padding: 4px;
+    width: 25%;
+    height: 20px;
+    font-family: ubuntu;
+    font-size: 16px;
+    line-height: 20px;
+    text-align: right;
+    background-color: black;
+    color: white;
+    vertical-align: top;
+}
+dl > dd
+{
+    display: inline-block;
+    margin-bottom: 4px;
+    margin-left: 4px;
+    border-radius: 0px 6px 6px 0px;
+    border: 1px solid lightgray;
+    padding: 3px;
+    width: calc(75% - 20px);
+    height: 20px;
+    background-color: white;
+    vertical-align: top;
+}
+
+button
+{
+    background-color: rgb(120,255,125);
+    cursor: pointer;
+}
+
+dd > select,
+dd > input
+{
+    background-color: transparent;
+}
+
+dd > select:only-child,
+dd > input:only-child
+{
+    width: 100%;
+}
+
+dd > input[type="checkbox"]
+{
+    box-sizing: border-box;
+    display: inline-block;
+    margin-right: 4px;
+    border: 1px solid black;
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+}
+
+dd > input[type="checkbox"] ~ input
+{
+    width: calc(100% - 32px);
+    vertical-align: middle;
+}

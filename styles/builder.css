@@ -1,0 +1,43 @@
+
+*
+{
+    margin: 0px;
+    outline: 0px solid transparent;
+    border: 0px solid transparent;
+    padding: 0px;
+}
+
+div.wrapper
+{
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    display: block;
+    background-color: rgb(0,0,0);
+}
+
+div.viewbox
+{
+    position: absolute;
+    box-sizing: border-box;
+    display: block;
+    border: 0px solid white;
+    width: 50%;
+    height: 50%;
+    background-color: rgb(120,120,120);
+}
+
+div.viewbox.-lt { top: 0px; left: 0px; border-width: 0px 1px 1px 0px; }
+div.viewbox.-rt { top: 0px; right: 0px; border-width: 0px 0px 1px 1px; }
+div.viewbox.-lb { bottom: 0px; left: 0px; border-width: 1px 1px 0px 0px; }
+div.viewbox.-rb { bottom: 0px; right: 0px; border-width: 1px 0px 0px 1px; }
+
+div.viewbox > canvas
+{
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+}

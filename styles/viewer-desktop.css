@@ -1,0 +1,90 @@
+*
+{
+    outline: 0px solid transparent;
+    margin: 0px;
+    padding: 0xp;
+    border: 0px solid transparent;
+}
+
+body
+{
+}
+
+div.viewport
+{
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    bottom: 0px;
+    display: block;
+    width: 50%;
+    background-color: rgb(220,220,220);
+}
+div.viewport > canvas
+{
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+button#Generate
+{
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    display: block;
+    margin: 10px;
+    border-radius: 10px;
+    width: calc(50% - 20px);
+    height: calc(10% - 20px);
+    font-size: 20px;
+}
+
+#Detail
+{
+    position: fixed;
+    top: 0px;
+    right: 0px;
+    display: block;
+    margin-bottom: 10px;
+    padding: 10px 10px 0px;
+    width: calc(50% - 20px);
+    height: calc(50% - 10px);
+    overflow-y: auto;
+}
+
+.environment
+{
+    position: fixed;
+    right: 0px;
+    bottom: 0px;
+    display: flex;
+    margin-right: 10px;
+    width: calc(50% - 10px);
+    height: 40%;
+}
+.environment > .column
+{
+    flex: 1;
+    margin-left: 10px;
+    padding-right: 5px;
+    overflow-y: auto;
+}
+.environment > .column[kj-ui-caption]
+{
+    position: relative;
+    padding-top: 40px;
+}
+.environment > .column[kj-ui-caption]::before
+{
+    content: attr(kj-ui-caption);
+    position: absolute;
+    top: 5px;
+    left: 0px;
+    right: 0px;
+    display: block;
+    font-family: ubuntu;
+    font-size: 24px;
+    line-height: 30px;
+    text-align: center;
+}

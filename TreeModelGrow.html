@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0" />
+    <title>Tree Simulator</title>
+    <link rel="stylesheet" href="styles/editor.css" />
+    <!--<link rel="stylesheet" media="screen and (min-width:900px)" href="styles/viewer-desktop.css" />
+    <link rel="stylesheet" media="screen and (max-width:400px)" href="styles/viewer-mobile.css" />-->
+</head>
+
+<body>
+
+<div class="-wrapper -row" kj-editor-form="full-screen">
+    <div class="-cell -c1" kj-editor-area="viewport"></div>
+    <!--<div class="-cell -c1 -column" style="max-width:400px;">
+        <div class="-cell -c5" kj-editor-board="creature"></div>
+        <div class="-cell -c1 -row">
+            <div class="-cell -c1" kj-editor-button="save-file"></div>
+            <div class="-cell -c1" kj-editor-button="load-file"></div>
+        </div>
+        <div class="-cell -c6" kj-editor-board="node"></div>
+    <div>-->
+</div>
+
+
+<script type="text/javascript" src="vendor/seedrandom.min.js"></script>
+<script type="text/javascript" src="vendor/three.min.js"></script>
+
+<script type="text/javascript" src="scripts/tree.js"></script>
+<script type="text/javascript" src="scripts/editor.js"></script>
+
+<script type="text/javascript">
+//Math.seedrandom("010102020303");
+kjEditor.initialize();
+var tree = new kjTree(8),
+    mesh = new THREE.Mesh(
+        tree.geometry,
+        new THREE.MeshPhongMaterial({
+            //"flatShading": true,
+            "color": 0xBBFFAA
+        })
+    );
+kjEditor.add(mesh);
+
+var grow = true, age = 0;
+//kjEditor.setHotKey("v",function() { grow = !grow; });
+kjEditor.on("click",function() { grow = !grow; });
+kjEditor.onUpdate(function(delta) {
+    if (!grow) { return; }
+    tree.grow();
+    var size = tree.size() * mesh.scale.y;
+    if (size>8) {
+        mesh.scale.multiplyScalar(0.995);
+    }
+    age++;
+    if (age>1000) {
+        age = 0;
+        grow = false;
+    }
+});
+</script>
+
+</body>
+
+</html>
