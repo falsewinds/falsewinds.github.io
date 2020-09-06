@@ -33,9 +33,9 @@
 <script type="text/javascript" src="scripts/editor.js"></script>
 
 <script type="text/javascript">
-//Math.seedrandom("010102020303");
+//Math.seedrandom("000000000000");
 kjEditor.initialize();
-var tree = new kjTree(8),
+var tree = new kjTree(12),
     mesh = new THREE.Mesh(
         tree.geometry,
         new THREE.MeshPhongMaterial({
@@ -46,17 +46,18 @@ var tree = new kjTree(8),
 kjEditor.add(mesh);
 
 var grow = true, age = 0;
-//kjEditor.setHotKey("v",function() { grow = !grow; });
-kjEditor.on("click",function() { grow = !grow; });
+kjEditor.setHotKey("v",function() { grow = !grow; });
+//kjEditor.on("click",function() { grow = !grow; });
 kjEditor.onUpdate(function(delta) {
     if (!grow) { return; }
-    tree.grow();
+    tree.update();
     var size = tree.size() * mesh.scale.y;
     if (size>8) {
-        mesh.scale.multiplyScalar(0.995);
+        var scalar = 8 / size;
+        mesh.scale.multiplyScalar(scalar);
     }
     age++;
-    if (age>1000) {
+    if (age>4000) {
         age = 0;
         grow = false;
     }
