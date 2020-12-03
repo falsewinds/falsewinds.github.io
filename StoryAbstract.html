@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0" />
+    <title>Auto Story Abstract</title>
+    <style>
+ul.chronicle
+{
+    display: block;
+    margin: 10px;
+    outline: none;
+    border-top: 4px solid black;
+    padding: 0px;
+}
+ul.chronicle > li
+{
+    display: flex;
+    margin: 0px;
+    outline: none;
+    border: none;
+    padding: 0px;
+    font-size: 16px;
+    line-height: 20px;
+}
+ul.chronicle > li > .time
+{
+    position: relative;
+    display: block;
+    border-right: 4px solid black;
+    padding: 2px 10px 2px 0px;
+    width: 100px;
+    text-align: right;
+    vertical-align: bottom;
+}
+ul.chronicle > li:last-of-type > .time
+{
+    height: 200px;
+}
+ul.chronicle > li > .time::after
+{
+    content: " ";
+    position: absolute;
+    top: 5px;
+    right: -8px;
+    box-sizing: border-box;
+    display: block;
+    border: 2px solid black;
+    background-color: white;
+    width: 12px;
+    height: 12px;
+    font-size: 2px;
+    line-height: 4px;
+    transform: rotate(45deg);
+}
+ul.chronicle > li > .desc
+{
+    flex: 1;
+    display: block;
+    margin: 0px;
+    padding: 2px 10px;
+    vertical-align: bottom;
+}
+    </style>
+</head>
+
+<body>
+
+<label>Character: <select id="people"><option value="_all">(ALL)</option></select></label>
+<label>Place: <select id="places"><option value="_all">(ALL)</option></select></label>
+<label>Item: <select id="items"><option value="_all">(ALL)</option></select><label>
+<button id="search">Search</button>
+<ul id="Chronicle" class="chronicle"></ul>
+
+<script type="text/javascript" src="scripts/name.js"></script>
+<script type="text/javascript" src="scripts/storyline.js"></script>
+
+<script type="text/javascript">
+var chronicle = document.querySelector("#Chronicle");
+function clear() { chronicle.innerHTML = ""; }
+function write(time,desc) {
+    var t = document.createElement("div"),
+        th = parseInt(time),
+        h = th % 24, d = (th-h) / 24;
+    t.className = "time";
+    t.appendChild(document.createTextNode(
+        ["Day",d,h+":00"].join(" ")
+    ));
+    var d = document.createElement("div");
+    d.className = "desc";
+    //d.appendChild(document.createTextNode(desc));
+    d.innerHTML = desc;
+    var li = document.createElement("li");
+    li.appendChild(t);
+    li.appendChild(d);
+    chronicle.appendChild(li);
+}
+function addOption(select,obj) {
+    var sel = document.querySelector(select),
+        opt = document.createElement("option");
+    opt.setAttribute("value",obj.name);
+    opt.appendChild(document.createTextNode(obj.name));
+    opt.entity = obj;
+    sel.appendChild(opt);
+}
+document.querySelector("button#search").addEventListener("click",function() {
+    var contains = [];
+    var selects = document.querySelectorAll("select");
+    for(var i=0;i<selects.length;i++) {
+        var sel = selects[i], val = sel.value;
+        if (val=="_all") { continue; }
+        var opt = sel.querySelector("option[value=\""+val+"\"]");
+        contains.push(opt.entity);
+    }
+    clear();
+    var filters = (contains.length>0) ? [{"contains":contains}] : [{}];
+    var events = kjStory.search(filters)
+    events.map(function(s) {
+        write(s.timestamp,kjStory.describe(s));
+    });
+    console.log(events.length);
+});
+
+var ng = kjName.generator("en",false), itemcount = 0;
+function newitem() {
+    itemcount++;
+    return kjStory.deploy("Item","MacGuffin#"+itemcount);
+};
+for(var i=0;i<3;i++) {
+    var a = kjStory.deploy("Area",ng()),
+        pc = Math.floor(Math.random()*3) + 4,
+        ic = Math.floor(Math.random()*3);
+    addOption("select#places",a);
+    for(var j=0;j<pc;j++) {
+        var c = kjStory.deploy("Char",ng());
+        addOption("select#people",c);
+        c.area = a;
+        a.people.map(function(oc) {
+            c.relate(oc,Math.floor(Math.random()*9)-4);
+        });
+        a.people.push(c);
+    }
+    for(var j=0;j<ic;j++) {
+        var i = newitem();
+        addOption("select#items",i);
+    }
+}
+
+function _roll(arr) {
+    var max = arr.length;
+    return arr[Math.floor(Math.random()*max)];
+}
+var pending = [];
+function develop(count) {
+    var sentences = [];
+    while (sentences.length<count) {
+        //var e = _roll(Object.values(kjStory.Event));
+        var e = kjStory.Event[_roll(["Meet","Meet","Move","Gain","Lose"])];
+        var people = kjStory.finds("Char"),
+            c = _roll(people);
+        switch (e) {
+        case kjStory.Event.Meet:
+            var around = c.area.people.slice(),
+                ci = around.indexOf(c);
+            around.splice(ci,1);
+            if (around.length==0) { break; }
+            var c2 = _roll(around);
+            sentences.push(e.build([c,c2]));
+            break;
+        case kjStory.Event.Gain:
+            var is = kjStory.finds("Item");
+            is.push("_new");
+            var i = _roll(is);
+            if (i=="_new") {
+                i = newitem();
+                addOption("select#items",i);
+            }
+            if (i.owner==null) {
+                sentences.push(e.build([c,i]));
+            } else {
+                sentences.push(kjStory.Event.Lose.build([i.owner,i]));
+            }
+            break;
+        case kjStory.Event.Lose:
+            var i = _roll(kjStory.finds("Item"));
+            if (i==null) { break; }
+            if (i.owner!=null) {
+                sentences.push(e.build([i.owner,i]));
+            } else {
+                sentences.push(kjStory.Event.Gain.build([c,i]));
+            }
+            break;
+        case kjStory.Event.Move:
+            var as = kjStory.finds("Area"),
+                ai = as.indexOf(c.area);
+            as.splice(ai,1);
+            as.push("_new");
+            var a = _roll(as);
+            if (a=="_new") {
+                a = kjStory.deploy("Area",ng());
+                addOption("select#places",a);
+            }
+            sentences.push(e.build([c,a]));
+            break;
+        default:
+            break;
+        }
+    }
+    pending = kjStory.weave(sentences.concat(pending));
+}
+for(var i=0;i<100;i++) { develop(10); }
+
+var events = kjStory.search([{}])
+console.log(events.length,pending.length);
+events.map(function(s) {
+    write(s.timestamp,kjStory.describe(s));
+});
+</script>
+
+</body>
+
+</html>
