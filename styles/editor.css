@@ -8,6 +8,14 @@
     display: block;
 }
 
+.-cell
+{
+    position: relative;
+    display: block;
+    overflow: hidden;
+    flex-basis: min-content;
+}
+
 .-row
 {
     position: relative;
@@ -23,17 +31,26 @@
     align-items: stretch;
 }
 
-.-cell:not(*.-column),
-.-cell:not(*.-row)
-{
-    position: relative;
-    display: block;
-    overflow: hidden;
-}
-
 .-cell.-c1 { flex: 1; }
 .-cell.-c2 { flex: 2; }
 .-cell.-c3 { flex: 3; }
 .-cell.-c4 { flex: 4; }
 .-cell.-c5 { flex: 5; }
 .-cell.-c6 { flex: 6; }
+
+a.btn-like
+{
+    position: relative;
+    display: block;
+    margin: 8px;
+    outline: 0px;
+    border: 0px;
+    border-radius: 8px;
+    padding: 4px;
+    background-color: rgb(255,255,0);
+    font-size: 16px;
+    line-height: 20px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+}
