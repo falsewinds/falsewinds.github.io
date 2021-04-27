@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0" />
+    <title>Planet</title>
+    <link rel="stylesheet" href="styles/editor.css" />
+</head>
+
+<body>
+
+<div class="-wrapper -row" kj-editor-form="full-screen">
+    <div class="-cell -c1 -column">
+        <div class="-cell -c1" style="background-color:rgb(0,0,0);" kj-editor-viewport="main"></div>
+    </div>
+    <!--<div class="-cell -column" style="width: 300px;">
+        <div class="-cell" style="height:300px;" kj-editor-canvas="minimap"></div>
+        <div class="-cell" kj-editor-button="create">Generate</div>
+        <div class="-cell" kj-editor-button="saveraw">Save RAW</div>
+    </div>-->
+</div>
+
+<script type="text/javascript" src="vendor/three.r127.min.js"></script>
+<script type="text/javascript" src="scripts_v3/editor.js"></script>
+<!--<script type="text/javascript" src="scripts_v3/surface.js"></script>-->
+<script type="text/javascript" src="scripts_v3/solid.js"></script>
+<script type="text/javascript" src="vendor/seedrandom.min.js"></script>
+
+<script type="text/javascript">
+kjEditor.initialize();
+
+//Math.seedrandom("0000000000");
+
+// rect
+class Rect {
+    constructor(a,b,c,d) {
+        this.indices = [a,b,c,d];
+        this.nearbys = [];
+        this.center = null;
+    };
+
+    findnear(rects) {
+        for(let i=0;i<4;i++) {
+            let ci = this.indices[i],
+                ni = this.indices[(i+1)%4];
+            rects.map((r)=>{
+                if (r==this) { return; }
+                let idx = r.indices.indexOf(ni);
+                if (idx<0) { return; }
+                if (r.indices[(idx+1)%4]==ci) {
+                    this.nearbys[i] = r;
+                    return;
+                }
+            });
+        }
+    };
+
+};
+
+const radius = 4.5, range = Math.sqrt(radius*radius/3);
+let cube = new kjSolid.Geometry();
+cube.addVertice( range, range, range);
+cube.addVertice( range, range,-range);
+cube.addVertice(-range, range,-range);
+cube.addVertice(-range, range, range);
+cube.addVertice( range,-range, range);
+cube.addVertice( range,-range,-range);
+cube.addVertice(-range,-range,-range);
+cube.addVertice(-range,-range, range);
+
+function square(geo,rad,rect,times) {
+    let avg = 0;
+    let center = rect.indices.reduce((sum,i)=>{
+        let v = geo.vertices[i];
+        avg += v.distance - rad;
+        return sum.add(v.normalized());
+    },new kjSolid.Point3D(0,0,0));
+    let h = (avg / 4) + (rollf() * rad * 0.4 / Math.pow(2,times));
+    center.div(4).normalize().mul(rad+h);
+    rect.center = geo.addVertice(center);
+}
+
+let db = {}, keyof = function(i1,i2) {
+    return "e" + Math.min(i1,i2) + "-" + Math.max(i1,i2);
+}, rollf = function() { return Math.random() * 2 - 1; };
+function diamond(geo,rad,rect,times) {
+    let oi = rect.indices,
+        mi = oi.map((ci,i)=>{
+            let ni = oi[(i+1)%4], k = keyof(ci,ni);
+            if (!(k in db)) {
+                let m = geo.vertices[ci].normalized()
+                        .add(geo.vertices[ni].normalized())
+                        .div(2).normalize(),
+                    avg = [ci,ni,rect.nearbys[i].center,rect.center].reduce((sum,idx)=>{
+                            return sum + geo.vertices[idx].distance - rad;
+                        },0) / 4;
+                let h = avg + (rollf() * (rad/Math.pow(2,times)) * 0.4);
+                m.mul(rad+h);
+                db[k] = geo.addVertice(m);
+            }
+            return db[k];
+        });
+    
+    return [
+        [oi[0],mi[0],rect.center,mi[3]],
+        [mi[0],oi[1],mi[1],rect.center],
+        [rect.center,mi[1],oi[2],mi[2]],
+        [mi[3],rect.center,mi[2],oi[3]]
+    ].map((a)=>{ return new Rect(a[0],a[1],a[2],a[3]); });
+}
+
+let rectangles = [];
+rectangles.push(new Rect(0,1,2,3));
+rectangles.push(new Rect(4,0,3,7));
+rectangles.push(new Rect(5,1,0,4));
+rectangles.push(new Rect(6,2,1,5));
+rectangles.push(new Rect(7,3,2,6));
+rectangles.push(new Rect(5,4,7,6));
+
+let t = new kjEditor.Timer();
+const fractal = 5;
+for(let j=0;j<fractal;j++) {
+    rectangles.map((r)=>{ r.findnear(rectangles); });
+    rectangles.map((r)=>{ square(cube,radius,r,j+2); });
+    let newrects = [];
+    db = {};
+    rectangles.map((r)=>{
+        diamond(cube,radius,r,j+2).map((a)=>{
+            newrects.push(a);
+        });
+    });
+    rectangles = newrects;
+    console.log(j+" time(s), use "+t.count(3)+" s.");
+}
+
+rectangles.map((r)=>{
+    cube.addRectangle.apply(cube,r.indices);
+});
+console.log(
+    cube.vertices.length,
+    cube.triangles.length
+);
+
+// Helper
+/*kjEditor.Scene("main").add(
+    new THREE.GridHelper(10,10),
+    new THREE.Vector3(0,-5,0)
+);*/
+
+// cube mesh
+const color = 0xCCCCCC;
+let materials = [
+    new THREE.MeshPhongMaterial({"color":color,"shininess":0.1}),
+    new THREE.MeshBasicMaterial({"color":color,"wireframe":true}),
+    new THREE.MeshPhongMaterial({"flatShading":true,"color":color})
+], current_material = 0;
+let mesh = kjEditor.Scene("main").add(new THREE.Mesh(
+    kjSolid.toBufferGeometry(cube,[0,0,0]),
+    materials[current_material]
+));
+// Set Listener for change Material
+kjEditor.on("press:w",function() {
+    current_material++;
+    current_material %= materials.length;
+    mesh.material = materials[current_material];
+});
+
+let ocean = kjEditor.Scene("main").add(new THREE.Mesh(
+    new THREE.IcosahedronGeometry(radius,6),
+    new THREE.MeshPhongMaterial({
+        "color": 0x3355FF,
+        "shininess": 0,
+        "opacity": 0.92,
+        "transparent": true
+    })
+));
+/*let cloud = kjEditor.Scene("main").add(new THREE.Mesh(
+    new THREE.IcosahedronGeometry(radius*1.1,4),
+    new THREE.MeshPhongMaterial({
+        "color": 0xFFFFFF,
+        "shininess": 1,
+        "opacity": 0.2,
+        "transparent": true
+    })
+));*/
+
+ocean.userData.scalar = 0;
+kjEditor.onUpdate(function(delta) {
+    let ry = delta / 5000;
+    mesh.rotation.y += ry;
+    ocean.rotation.y += ry;
+    ocean.userData.scalar += ry * 2;
+    let scalar = 1+Math.sin(ocean.userData.scalar)*0.005;
+    ocean.scale.set(scalar,scalar,scalar);
+});
+
+//console.log(kjEditor.Viewport("viewport"));
+
+
+</script>
+
+</body>
+
+</html>
