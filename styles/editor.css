@@ -8,6 +8,38 @@
     display: block;
 }
 
+div.-cover
+{
+    position: fixed !important;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    z-index: 999;
+    display: block;
+    background-color: rgba(0,0,0,0.75);
+}
+
+.-dialog
+{
+    position: fixed !important;
+    z-index: 1000;
+    box-sizing: border-box;
+    display: block;
+    margin: 0px;
+    outline: 0px solid transparent;
+    border: 0px solid transparent;
+    border-radius: 8px;
+    padding: 4px;
+    background-color: rgba(255,255,255,0.85);
+}
+
+.-dialog > .title {
+    color: black;
+    font-size: 24px;
+    font-family: "ubuntu";
+}
+
 .-cell
 {
     position: relative;
@@ -37,6 +69,21 @@
 .-cell.-c4 { flex: 4; }
 .-cell.-c5 { flex: 5; }
 .-cell.-c6 { flex: 6; }
+
+.-layers
+{
+    position: relative !important;
+}
+
+.-layers > .-layer
+{
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    display: block;
+}
 
 a.btn-like
 {

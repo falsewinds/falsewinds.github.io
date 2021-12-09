@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=0" />
+    <title>Tree Simulator</title>
+    <link rel="stylesheet" href="styles/editor.css" />
+</head>
+
+<body>
+
+<div class="-wrapper -row" kj-editor="full-screen">
+    <div class="-cell -c3" kj-editor-viewport="nature"
+        kj-editor-viewport-name="treeview"
+        kj-editor-viewport-axis></div>
+</div>
+
+<script type="text/javascript" src="vendor/three.r127.min.js"></script>
+<script type="text/javascript" src="scripts_v3/editor.js"></script>
+<script type="text/javascript" src="scripts_v3/solid.js"></script>
+<script type="text/javascript" src="scripts_v3/tree.js"></script>
+
+<script type="text/javascript">
+kjEditor.initialize();
+
+let scene = kjEditor.Scene("nature"),
+    viewport = kjEditor.Viewport("treeview"),
+    tree = new kjNature.Tree(8,2,0.5);
+const maxCount = tree.side * 1000;
+// Light
+const dist = 100;
+[ [1,2,1,0.65], [-1,2,-1,0.5], [-1,-2,1,0.25] ].map(([x,y,z,str])=>{
+    scene.add(
+        new THREE.PointLight( 0xFFFFFF, str, 0 ),
+        new THREE.Vector3(x*dist,y*dist,z*dist)
+    );
+});
+viewport.target.set(0,5,0);
+viewport.relocate();
+scene.add( new THREE.GridHelper(10,10) );
+
+
+let buf = kjSolid.toBufferGeometry(tree.geometry),
+    mat = [
+        new THREE.MeshPhongMaterial({"color": 0xDEB887,"flatShading":true}),
+        new THREE.MeshBasicMaterial({"color":0xDEB887,"wireframe":true}),
+        new THREE.MeshPhongMaterial({"color": 0xDEB887,"flatShading":false})
+    ],
+    mat_i = 0,
+    mesh = new THREE.Mesh(buf,mat[mat_i]);
+scene.add(mesh);
+
+let growing = true, roll = viewport.radianXZ;
+kjEditor.onUpdate(function() {
+    if (!growing) { return; }
+    let tri_count = tree.geometry.triangles.length;
+    if (tri_count>maxCount) {
+        tree.core.grow(0);
+        if (tree.geometry.triangles.length==tri_count) {
+            console.log(tree.branch_count,tree.geometry.triangles.length);
+            growing = false;
+            return;
+        }
+    } else { tree.core.grow(100); }
+    kjSolid.updateBufferGeometry(tree.geometry,buf);
+    roll += 0.09;
+    viewport.viewAt(viewport.radianY,roll,viewport.scale);
+    viewport.relocate();
+    /*let bb = buf.boundingBox;
+    if (bb.max.y>viewport.scale) {
+        
+    }*/
+});
+
+kjEditor.on("press:r",function() {
+    if (growing) { return; }
+    tree.clear();
+    growing = true;
+});
+
+kjEditor.on("press:w",function() {
+    mat_i = (mat_i+1) % mat.length;
+    mesh.material = mat[mat_i];
+});
+
+/*let axishelpers = [];
+kjEditor.on("press:w",function() {
+    axishelpers.map((m)=>{ m.remove(); });
+    axishelpers = [];
+    let queue = [ tree.core ];
+    while (queue.length>0) {
+        let stem = queue.shift();
+        if (stem.children.length>0) {
+            stem.children.map((c)=>{ queue.push(c); });
+        }
+        let ah = stem.coord.toAxisHelper();
+        axishelpers.push(ah);
+        scene.add(ah,stem.center);
+    }
+});*/
+
+</script>
+
+</body>
+
+</html>
