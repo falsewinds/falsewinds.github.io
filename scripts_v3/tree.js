@@ -60,6 +60,10 @@ class Coordinate {
 const SIDES = 12,
     GROWSPEED = 0.1;
 
+/*class Seed {
+    constructor(parent,direction,)
+};*/
+
 class Stem {
     constructor(parent,direction) {
         this.center = new kjSolid.Point3D(0,0,0);
@@ -178,8 +182,9 @@ class Stem {
             if (seed>1) { this._tree.branch_count += seed - 1; }
         }
     };
-    _expand(limit,segment=GROWSPEED/5,factor=1.2) {
+    _expand(segment=GROWSPEED/40,factor=1.2) {
         if (this.energy<segment) { return 0; }
+        segment *= this._tree.side;
         this.energy -= segment;
         let radius = [], min_list = [];
         let min = this.begins.reduce((n,vi)=>{
@@ -190,7 +195,6 @@ class Stem {
             radius.push(d);
             return (d<n) ? d : n;
         },99999);
-        if (min>limit) { return min; }
         min *= factor;
         this.begins.map((vi,i)=>{
             let d = radius[i];
@@ -209,7 +213,7 @@ class Stem {
         if (energy==null) { energy = 0; }
         this.energy += energy;
         this._entend();
-        this._expand(this.length/5);
+        this._expand();
         this.age++;
     };
 };
@@ -233,6 +237,43 @@ class Tree {
         this.geometry = new kjSolid.Geometry();
         this.core = new Stem(this,new kjSolid.Point3D(0,1,0));
         this.branch_count = 1;
+    };
+
+    travels(iterator) {
+        let queue = [this.core], count = 0;
+        while (queue.length>0) {
+            let s = queue.shift();
+            iterator(s);
+            s.children.map((cs)=>{ queue.push(cs); });
+            count++;
+        }
+        console.log(count);
+    };
+
+    bloom(trunk_age=20) {
+        let queue = [this.core];
+        while (queue.length>0) {
+            let s = queue.shift();
+            s.children.map((cs)=>{ queue.push(cs); });
+            if (s.age>trunk_age) { continue; }
+            let age = s.age / trunk_age * 0.5 + 0.5,
+                n = s.coord.normal.clone().normalize().multiplyScalar(s.length),
+                ext = n.clone().multiplyScalar(age),
+                x = s.coord.left.clone().normalize().multiplyScalar(s.length*age),
+                z = s.coord.forward.clone().normalize().multiplyScalar(s.length*age),
+                end_vi = s.ends[0],
+                end = this.geometry.vertices[end_vi],
+                c1_vi = this.geometry.addVertice(end.clone().add(ext)),
+                c0_vi = this.geometry.addVertice(end.clone().sub(n)),
+                x1_vi = this.geometry.addVertice(end.clone().add(x)),
+                x2_vi = this.geometry.addVertice(end.clone().sub(x)),
+                z1_vi = this.geometry.addVertice(end.clone().add(z)),
+                z2_vi = this.geometry.addVertice(end.clone().sub(z));
+            this.geometry.addRectangle(c1_vi,x1_vi,c0_vi,x2_vi);
+            this.geometry.addRectangle(c1_vi,x2_vi,c0_vi,x1_vi);
+            this.geometry.addRectangle(c1_vi,z1_vi,c0_vi,z2_vi);
+            this.geometry.addRectangle(c1_vi,z2_vi,c0_vi,z1_vi);
+        }
     };
 };
 
