@@ -11,7 +11,7 @@
 
 <body>
 
-<div class="-wrapper -row" kj-editor-form="full-screen">
+<div class="-wrapper -row" kj-editor="full-screen">
     <div class="-cell -c1 -column">
         <div class="-cell -c1" style="background-color:rgb(0,0,0);" kj-editor-viewport="main"></div>
     </div>
@@ -148,6 +148,19 @@ console.log(
     new THREE.GridHelper(10,10),
     new THREE.Vector3(0,-5,0)
 );*/
+
+// Ambient Light: soft white light
+kjEditor.Scene("main").scene.add(new THREE.AmbientLight(0x000000));
+// Simulate Sun light
+[ [1,2,1,0.65], [-1,2,-1,0.5], [-1,-2,1,0.25] ].map((function(dist) {
+    return function(p) {
+        var light = new THREE.PointLight( 0xFFFFFF, p[3], 0 );
+        light.position.set(p[0]*dist,p[1]*dist,p[2]*dist);
+        kjEditor.Scene("main").scene.add(light);
+    };
+})(100));
+
+
 
 // cube mesh
 const color = 0xCCCCCC;
