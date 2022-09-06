@@ -1,0 +1,69 @@
+{
+    "entrance": "scene0",
+    "scenes": {
+        "scene0": {
+            "title": "場景入口",
+            "description": [ "這是一個作為入口的場景。", "場景包含標題、描述，還有選項。", "描述可以容納多行文字。" ],
+            "layout": "default_layout.json",
+            "background": {
+                "uri": "test.png",
+                "repeat": "fill",
+                "clip": [ 0 ]
+            },
+            "picture": "test.png",
+            "options": {
+                "main": [
+                    {   "title": "前往下一個場景",
+                        "action": "GOTO(scene1)"
+                    }
+                ]
+            }
+        },
+        "scene1": {
+            "title": "第二個場景",
+            "description": [ "這是第二個場景。" ],
+            "layout": "default_layout.json",
+            "background": "gray",
+            "picture": "test.png",
+            "options": {
+                "main": [
+                    {   "title": "獲得旗標",
+                        "condition": "COUNT(flag1)<=10",
+                        "action": "GAIN(flag1,1);GOTO(scene1)"
+                    },
+                    {   "title": "失去旗標",
+                        "condition": "COUNT(flag1)>0",
+                        "action": "GAIN(flag1,-1);GOTO(scene1)"
+                    },
+                    {   "title": "前往下一個場景",
+                        "action": "GOTO(scene2)"
+                    },
+                    {   "title": "回到上一個場景",
+                        "action": "GOTO(-1)"
+                    }
+                ]
+            },
+            "listener": {
+                "enter": "SHOW(@hover,[flag1,1]),GAIN(flag1,1)"
+            }
+        },
+        "scene2": {
+            "title": "第三個場景",
+            "description": [ "這是第三個場景。" ],
+            "layout": "default_layout.json",
+            "background": "white",
+            "picture": "test.png",
+            "options": {
+                "main": [
+                    {   "title": "回到第一個場景",
+                        "action": "GAIN(flag1,1);GOTO(scene0)"
+                    },
+                    {   "title": "回到第二個場景",
+                        "condition": "COUNT(flag1)>0",
+                        "action": "GAIN(flag1,COUNT(flag1)*-1);GOTO(scene1)"
+                    }
+                ]
+            }
+        }
+    }
+}

@@ -1,0 +1,154 @@
+:root
+{
+    --toolbar-height: 100px;
+    --scenes-width: 240px;
+}
+
+div#editarea
+{
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    box-sizing: border-box;
+    display: block;
+    border: 0px solid transparent;
+}
+
+div#toolbar
+{
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    box-sizing: border-box;
+    display: block;
+    border-bottom: 1px solid gray;
+    padding: 16px;
+    height: var(--toolbar-height);
+    overflow: hidden;
+}
+
+nav#scenes
+{
+    position: absolute;
+    top: var(--toolbar-height);
+    left: 0px;
+    bottom: 0px;
+    box-sizing: border-box;
+    display: block;
+    border-right: 1px solid gray;
+    padding: 0px;
+    width: var(--scenes-width);
+    user-select: none;
+    overflow: hidden;
+}
+
+nav#scenes > .scrollbox
+{
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    box-sizing: border-box;
+    display: block;
+    padding: 0px;
+    user-select: none;
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
+
+nav#scenes > .scrollbox > ul
+{
+    position: relative;
+    box-sizing: border-box;
+    display: block;
+    margin: 0px;
+    padding: 0px;
+}
+nav#scenes > .scrollbox > ul > li.scene
+{
+    position: relative;
+    box-sizing: content-box;
+    display: block;
+    margin: 0px auto;
+    padding: 8px 12px;
+}
+nav#scenes > .scrollbox > ul > li.scene:hover
+{
+    background-color: rgba(255,220,0,0.25);
+}
+
+nav#scenes > .scrollbox > ul > li.scene > div.scene
+{
+    position: relative;
+    box-sizing: border-box;
+    display: block;
+    margin: 0px;
+    border: 1px solid black;
+    padding: 0px;
+    background-color: white;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+nav#scenes > .hover
+{
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    box-sizing: border-box;
+    display: block;
+    visibility: hidden;
+    --icon-height: 40px;
+}
+nav#scenes > .hover.top
+{
+    top: 0px;
+    height: calc(var(--icon-height) * 2);
+}
+nav#scenes > .hover.bot
+{
+    bottom: 0px;
+    height: calc(var(--icon-height) * 3);
+}
+
+#main
+{
+    position: absolute;
+    top: var(--toolbar-height);
+    left: var(--scenes-width);
+    right: 0px;
+    bottom: 0px;
+    box-sizing: border-box;
+    display: block;
+    background-color: rgb(220,220,220);
+    user-select: none;
+}
+
+#wrapper
+{
+    position: absolute;
+    box-sizing: border-box;
+    display: block;
+    width: 95%;
+    background-color: white;
+    user-select: none;
+    box-shadow: 1px 1px 5px 5px rgba(0,0,0,0.25);
+}
+
+#controls
+{
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    z-index: 99;
+    box-sizing: border-box;
+    display: block;
+    user-select: none;
+    pointer-events: none;
+}

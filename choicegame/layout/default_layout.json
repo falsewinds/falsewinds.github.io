@@ -1,0 +1,105 @@
+{
+    "handle": "default_layout.json",
+    "width": 1920,
+    "height": 1080,
+    "type": "scene",
+    "background": "@background",
+    "content": [
+        {   "key": "title",
+            "type": "text",
+            "styles": {
+                "top": 9,
+                "left": "10%",
+                "width": "80%",
+                "height": 132,
+                "padding": 16,
+                "border": "none",
+                "font-size": 96,
+                "text-align": "center",
+                "line-height": 100,
+                "color": "black"
+            },
+            "content": "@title"
+        },
+        {   "key": "details",
+            "type": "block",
+            "styles": {
+                "top": 150,
+                "left": "5%",
+                "right": "5%",
+                "height": "auto"
+            },
+            "content": [
+                {   "key": "picture",
+                    "type": "image",
+                    "styles": {
+                        "top": 0,
+                        "left": 0,
+                        "width": 450,
+                        "height": 450,
+                        "padding": [ 0 ]
+                    },
+                    "content": "@picture"
+                },
+                {   "key": "description",
+                    "type": "text",
+                    "styles": {
+                        "top": 0,
+                        "left": 450,
+                        "right": 0,
+                        "height": "auto",
+                        "padding": [ 8 ],
+                        "font-size": 32,
+                        "color": "black"
+                    },
+                    "content": "@description"
+                }
+            ]
+        },
+        {   "key": "main",
+            "group": "options",
+            "type": "container",
+            "styles": {
+                "left": "5%",
+                "right": "5%",
+                "bottom": "5%",
+                "height": "auto"
+            },
+            "direction": "LRTB",
+            "columns": 4,
+            "spacing": 4,
+            "template": {
+                "key": "main_option",
+                "type": "component",
+                "styles": {
+                    "padding": 4,
+                    "background-color": "white",
+                    "cursor": "pointer"
+                },
+                "border": {
+                    "width": [ 1 ],
+                    "style": [ "solid" ],
+                    "color": "black",
+                    "corner": 4
+                },
+                "content": [
+                    {   "key": "option_title",
+                        "type": "text",
+                        "styles": {
+                            "font-size": 32,
+                            "line-height": 48,
+                            "text-align": "center"
+                        },
+                        "background": "white",
+                        "content": "@title"
+                    }
+                ],
+                "listener": {
+                    "hover": {
+                        "background": "rgb(200,200,200)"
+                    }
+                }
+            }
+        }
+    ]
+}
