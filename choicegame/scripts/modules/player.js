@@ -7,6 +7,7 @@ function prepare_layouts(layouts) {
         layout_db[k] = new Layout(layouts[k]);
     }
 }
+let resize = null
 function renderScene(scene) {
     let layout = scene.layout;
     if (!(layout instanceof Layout)) {
@@ -17,9 +18,15 @@ function renderScene(scene) {
         }
     }
     layout.render(scene);
-    layout.fill(wrapper);
+    resize = layout.fill(wrapper,{
+        "orient": "auto",
+        "resize": false,
+        "enable": true
+    }) || resize;
 }
-window.addEventListener("resize",(e)=>{ wrapper.onresize(); });
+window.addEventListener("resize",(e)=>{
+    resize();
+});
 
 const DEFAULT_STORY = "default_story.json";
 

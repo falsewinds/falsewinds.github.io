@@ -3,6 +3,7 @@ import { StyleSheet } from "./stylesheet.js";
 /*------------------------------------------------------------*\
  * Very Simple UUID
 \*------------------------------------------------------------*/
+const ATTR_PREFIX = "choicegame";
 let counter = 0;
 function uuid(prefix) {
     counter++;
@@ -73,6 +74,7 @@ function to_css(data,origin) {
     if (origin==null || typeof origin != "object") {
         origin = {};
     }
+    data = camel2snake(data);
     [   "position", "top", "left", "right", "bottom", "z-index",
         "display", "box-sizing",
         "width", "height", "margin", "padding",
@@ -215,7 +217,26 @@ function parse_image(img) {
     return bg_style.join(" ");
 }
 
-function to_ratio(ratio) { return isNaN(ratio) ? 1 : ratio; }
+function snake2camel(dict) {
+    let ret = {};
+    for(let k in dict) {
+        let rk = k.replace(/-[a-z]/g,(c)=>{
+            return c.toUpperCase();
+        });
+        ret[rk] = dict[k];
+    }
+    return ret;
+}
+function camel2snake(dict) {
+    let ret = {};
+    for(let k in dict) {
+        let rk = k.replace(/[A-Z]/g,(c)=>{
+            return "-" + c.toLowerCase();
+        });
+        ret[rk] = dict[k];
+    }
+    return ret;
+}
 
 /*------------------------------------------------------------*\
  * Block
@@ -284,8 +305,9 @@ class Block {
         }
         this.element = document.createElement(this.type=="image"?"img":"div");
         this.element.classList.add(this.key);
-        //this.element.choiceGameBlock = this;
-        this.element.setAttribute("choicegame-block-type",this.type);
+        this.element.setAttribute(ATTR_PREFIX+"-block-type",this.type);
+        this.element.setAttribute(ATTR_PREFIX+"-block-key",this.key);
+        //this.element.layoutBlock = this;
 
         this.layout = layout;
         this.parent = null;
@@ -368,7 +390,7 @@ class Block {
     toJSON(stringify) {
         let ret = {
             "type": this.type,
-            "styles": this.styles,
+            "styles": snake2camel(this.styles),
             "content": ("reference" in this) ? this.reference : []
         };
         if (this.key.charAt(0)!='_') { ret["key"] = this.key; }
@@ -395,6 +417,7 @@ class Layout {
         this.height = ("height" in json) ? parseInt(json.height) : 768;
         this.aspect = this.width / this.height;
         this.attributes = {};
+        this.blocks = {};
         transit(json,"rows",this);
         transit(json,"columns",this);
         transit(json,"spacing",this);
@@ -453,10 +476,12 @@ class Layout {
                 this.attributes[q.data.group+"."+b.key] = b;
             }
             if (q.parent instanceof Layout) {
+                b.element.setAttribute(ATTR_PREFIX+"-layout-key",this.key);
                 q.parent.root = b;
             } else if (q.parent instanceof Block ) {
                 q.parent.insert(b);
             } else { throw "Invalid parent!"; }
+            this.blocks[b.key] = b;
             if ("content" in q.data) {
                 let content = q.data.content;
                 if (!(content instanceof Array)) { content = [content]; }
@@ -519,10 +544,15 @@ class Layout {
                 block.element.innerHTML = "";
                 content.map((c)=>{
                     block.template.render(c);
-                    let opt = block.template.fill(block.element,true);
+                    let attrs = {};
                     if ("option_id" in c) {
-                        opt.setAttribute("choicegame-option",c.option_id);
+                        attrs["choicegame-option"] = c.option_id;
                     }
+                    block.template.fill(block.element,{
+                        "clone": true,
+                        "attrs": attrs
+                    });
+                    
                 });
                 break;
             }
@@ -533,44 +563,35 @@ class Layout {
         if (!(wrapper instanceof HTMLElement)) {
             throw "Invalid HTMLElement";
         }
-        let clone = false;
-        if (typeof options != "object") {
-            if (typeof options == "boolean") { clone = options; }
-            options = {};
-        } else {
-            clone = ("clone" in options) ? (options.clone===true) : false;
-        }
-        let e = (clone===true)
+        if (typeof options != "object") { options = {}; }
+        let clone = ("clone" in options) ? (options.clone===true) : false;
+        let e = clone
             ? this.root.element.cloneNode(true)
             : this.root.element;
+        let resize_func = null;
         if (this.type=="scene") {
+            let key = wrapper.getAttribute(ATTR_PREFIX+"-layout");
+            if (key==this.key) { return null; }
+            wrapper.setAttribute(ATTR_PREFIX+"-layout",this.key);
             e.style.width = to_length(this.width);
             e.style.height = to_length(this.height);
-            let stick = ("stick" in options) ? options.stick : "none",
-                scale;
-            switch (stick.toLowerCase()) {
-            case "width":
-            case "horizontal":
-            case "horz":
-                // check if the layout is stick to vertical
-                scale = (w,h)=>{
-                    wrapper.style.height = to_length(w/this.aspect);
-                    return w / this.width;
-                };
-                break;
-            case "height":
-            case "vertical":
-            case "vert":
-                // check if the layout is stick to horizontal
-                scale = (w,h)=>{
-                    wrapper.style.width = to_length(h/this.aspect);
-                    return h / this.height;
-                };
-                break;
-            case "none":
-            default:
-                stick = "none";
-                if (wrapper.parentNode!=document.body) {
+            let scale = (w,h)=>{ return Math.min(w/this.width,h/this.height); };
+            if ("resize" in options && options.resize===true) {
+                switch (options.orient) {
+                case "landscape":
+                    scale = (w,h)=>{
+                        wrapper.style.height = to_length(w/this.aspect);
+                        return w / this.width;
+                    };
+                    break;
+                case "portrait":
+                    scale = (w,h)=>{
+                        wrapper.style.width = to_length(h*this.aspect);
+                        return h / this.height;
+                    };
+                    break;
+                case "auto":
+                default:
                     scale = (w,h)=>{
                         let sw = w ? (w/this.width) : 1,
                             sh = h ? (h/this.height) : 1;
@@ -578,33 +599,47 @@ class Layout {
                             wrapper.style.height = to_length(w/this.aspect);
                             return sw;
                         }
-                        wrapper.style.width = to_length(h/this.aspect);
+                        wrapper.style.width = to_length(h*this.aspect);
                         return sh;
                     };
-                } else {
-                    scale = (w,h)=>{
-                        return Math.min(w/this.width,h/this.height);
-                    };
+                    break;
                 }
-                break;
+            } else {
+                switch (options.orient) {
+                case "landscape":
+                    scale = (w,h)=>{ return w / this.width; };
+                    break;
+                case "portrait":
+                    scale = (w,h)=>{ return h / this.height; };
+                    break;
+                case "auto":
+                default:
+                    break;
+                }
             }
-            wrapper.onresize = ()=>{
-                let s = scale(wrapper.clientWidth,wrapper.clientHeight);
-                let w = wrapper.clientWidth, h = wrapper.clientHeight;
+            resize_func = ()=>{
+                let s = scale(wrapper.clientWidth,wrapper.clientHeight),
+                    w = wrapper.clientWidth, h = wrapper.clientHeight;    
                 e.style.margin = [h-this.height,w-this.width].map((px)=>{
                     return to_length(Math.floor(px/2));
                 }).join(" ");
                 s = (s>1) ? 1 : ((Math.floor(s*10000)+5) / 10000);
                 e.style.transform = (s<1) ? "scale("+s+")" : "";
                 e.style.transformOrigin = "center";
-                e.style.overflow = "hidden";
-                e.setAttribute("choicegame-layout-scalar",(s*100)+"%");
-            };
-            wrapper.onresize();
+                e.setAttribute(ATTR_PREFIX+"-layout-scalar",(s*100)+"%");
+                if (!clone) { this.scalar = s; }
+            }
+            resize_func();
         }
-        wrapper.innerHTML = "";
-        wrapper.appendChild(e); 
-        return e;
+        e.style.pointerEvents = (options.enable===false) ? "none": "auto";
+        if ("attrs" in options) {
+            for(let attr in options.attrs) {
+                e.setAttribute(attr,options.attrs[attr]);
+            }
+        }
+        wrapper.style.overflow = (options.clip!==false) ? "hidden" : "auto";
+        wrapper.appendChild(e);
+        return resize_func;
     }
 
     update() {
@@ -669,6 +704,24 @@ class Layout {
 }
 
 /*------------------------------------------------------------*\
+ * Function(s)
+\*------------------------------------------------------------*/
+function findBlockElement(e) {
+    let cur = e;
+    while (cur instanceof HTMLElement) {
+        if (cur.hasAttribute(ATTR_PREFIX+"-block-key")) { break; }
+        cur = cur.parentNode;
+    }
+    return cur;
+}
+function getBlockKey(e) { return e.getAttribute(ATTR_PREFIX+"-block-key"); }
+function IsLayoutRoot(e) { return e.hasAttribute(ATTR_PREFIX+"-layout-key"); }
+
+/*------------------------------------------------------------*\
  * Export
 \*------------------------------------------------------------*/
-export { Block, Layout };
+export {
+    Block, Layout,
+    findBlockElement, getBlockKey,
+    IsLayoutRoot
+};

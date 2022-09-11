@@ -1,6 +1,13 @@
-import { Layout } from "./layout.js";
+import {
+    Layout,
+    findBlockElement,
+    getBlockKey,
+    IsLayoutRoot
+} from "./layout.js";
 import * as Core from "./core.js";
 import * as iDB from "./indexeddb.js";
+import * as DOM from "./dom.js";
+import * as layoutControl from "./layout-controller.js";
 
 /*------------------------------------------------------------*\
  * Check & Update local DB
@@ -32,92 +39,133 @@ if (updated==null || updated<user.updated) {
         .catch((e)=>{ console.log(e); });
 }
 
-/*------------------------------------------------------------*\
- * Prepare Editor
- - nav#scenes
-\*------------------------------------------------------------*/
-let nav = document.querySelector("nav#scenes"),
-    main = document.querySelector("#main"),
-    svg = document.querySelector("#svg");
-
-function build_by_selector(selector,parent) {
-    return selector.split(" ").reduce((p,sel)=>{
-        if (sel.length>0 && sel!=">") {
-            let clss = sel.split("."),
-                tag = clss.shift(), id = null;
-            if (tag.indexOf("#")>0) {
-                [tag,id] = tag.split("#");
-            }
-            if (tag.length==0) { tag = "div"; }
-            let e = document.createElement(tag);
-            if (id!=null) { e.id = id; }
-            e.classList.add(clss);
-            if (p!=null) { p.appendChild(e); }
-            return e;
-        }
-        return p;
-    },parent);
-}
-
 let layouts = {}, promises = {};
 async function getLayout(layout) {
-    if (typeof layout == "object") { return new Layout(layout); }
+    if (typeof layout == "object") { return layout; }
     if (typeof layout != "string") { throw "Invalid Layout!"; }
-    if (layout in layouts) { return layouts[layout]; }
+    //if (layout in layouts) { return layouts[layout]; }
     if (layout in promises) { return promises[layout]; }
     promises[layout] = db.select("layouts",layout).then((json)=>{
         console.log("Layout ["+layout+"] loaded.");
-        delete promises[layout];
-        layouts[layout] = new Layout(json);
-        return layouts[layout];
+        //delete promises[layout];
+        //layouts[layout] = json;
+        //return layouts[layout];
+        return json;
     }).catch((e)=>{
+        console.log(e);
         throw "Layout["+layout+"] not found!";
     });
     return promises[layout];
 }
 
-let wrapper = main.querySelector("#wrapper");
-wrapper.style.width = (main.clientWidth*0.95) + "px";
-function relocate_wrapper() {
-    let mw = main.clientWidth, mh = main.clientHeight,
-        w = wrapper.clientWidth, h = wrapper.clientHeight;
+/*------------------------------------------------------------*\
+ * Prepare Editor
+ - nav#scenes
+\*------------------------------------------------------------*/
+let ul = document.querySelector("nav#scenes ul");
+async function addScene(scene) {
+    let div = DOM.buildBySelector("li.scene > .scene",ul);
+    div.addEventListener("click",(e)=>{
+        // TODO: set style for activate Scene
+        editScene(scene);
+    });
+    return getLayout(scene.layout).then((json)=>{
+        scene.referred_layout = scene.layout;
+        scene.layout = new Layout(json);
+        scene.layout.render(scene);
+        scene.layout.fill(div,{
+            "clone": true,
+            "orient": "landscape",
+            "resize": true,
+            "clip": true,
+            "enable": false
+        });
+    });
+}
+
+/*------------------------------------------------------------*\
+ * Prepare Editor
+ - #main
+ - #wrapper
+\*------------------------------------------------------------*/
+let main = document.querySelector("#main"),
+    box = layoutControl.create(main,{
+        "color": "blue"
+    });
+
+let targetBlock = null, targetLayout = null;
+main.addEventListener("sizeChange",(e)=>{
+    if (targetBlock==null) { return; }
+    let rect = e.detail.rect;
+    targetBlock.style.top = rect.y + "px";
+    targetBlock.style.left = rect.x + "px";
+    targetBlock.style.width = rect.w + "px";
+    targetBlock.style.height = rect.h + "px";
+    /*let key = getBlockKey(targetBlock);
+    let b = targetLayout.blocks[key];
+    console.log(key,b,e.detail.rect);*/
+});
+main.addEventListener("sizeChanged",(e)=>{
+    if (targetBlock==null) { return; }
+    // TODO: apply change to styles
+    let key = getBlockKey(targetBlock),
+        b = targetLayout.blocks[key];
+    //console.log(key,b,e.detail.rect);
+    targetLayout.update();
+});
+main.addEventListener("contentEdit",(e)=>{
+    if (targetBlock==null) { return; }
+    box.hide();
+    let key = getBlockKey(targetBlock);
+    let b = targetLayout.blocks[key];
+    console.log(key,b);
+});
+
+const ratio = 0.95;
+let wrapper = main.querySelector("#wrapper"),
+    resize = null;
+function relocateWrapper() {
+    let mw = main.clientWidth, mh = main.clientHeight;
+    wrapper.style.width = (mw*ratio) + "px";
+    wrapper.style.height = (mh*ratio) + "px";
+    if (resize!=null) { resize(); }
+    let w = wrapper.clientWidth, h = wrapper.clientHeight;
     wrapper.style.margin = [mh-h,mw-w].map((px)=>{
         return (px/2) + "px";
     }).join(" ");
 }
-window.addEventListener("resize",(e)=>{
-    wrapper.style.width = (main.clientWidth*0.95) + "px";
-    //console.log(e,main.clientWidth);
-    wrapper.onresize();
-    relocate_wrapper();
+window.addEventListener("resize",relocateWrapper);
+function editScene(scene) {
+    if (targetLayout!=null) {
+        wrapper.removeChild(targetLayout.root.element);
+    }
+    targetLayout = scene.layout;
+    scene.layout.render(scene);
+    resize = scene.layout.fill(wrapper,{
+        "orient": "auto",
+        "resize": true,
+        "clip": true
+    }) || resize;
+    relocateWrapper();
+    box.hide();
+}
+
+wrapper.addEventListener("click",(e)=>{
+    let be = findBlockElement(e.target),
+        pe = findBlockElement(be.parentNode);
+    box.show(be,pe==document?null:pe);
+    box.set("scalar",1/targetLayout.scalar);
+    targetBlock = be;
 });
-function edit_scene(scene) {
-    getLayout(scene.layout).then((layout)=>{
-        layout.render(scene);
-        layout.fill(wrapper,{"stick":"horz"});
-        relocate_wrapper();
-    });
-}
-
-let ul = nav.querySelector(".scrollbox > ul");
-function add_scene(scene) {
-    let div = build_by_selector("li.scene > .scene",ul);
-    div.addEventListener("click",(e)=>{ edit_scene(scene); });
-    getLayout(scene.layout).then((layout)=>{
-        layout.render(scene);
-        let e = layout.fill(div,true);
-        e.style.pointerEvents = "none";
-    });
-}
-
 
 /*------------------------------------------------------------*\
  * Editor initialize
 \*------------------------------------------------------------*/
+//loading start
 let story = await Core.loadData("adventure","default_story.json");
+// loading end
 for(let k in story.scenes) {
     let s = story.scenes[k];
-    add_scene(s);
-    //if (k==story.entrance) {  }
-}
-edit_scene(story.scenes[story.entrance]);
+    await addScene(s);
+}    
+editScene(story.scenes[story.entrance]);

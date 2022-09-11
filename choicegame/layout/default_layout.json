@@ -21,40 +21,29 @@
             },
             "content": "@title"
         },
-        {   "key": "details",
-            "type": "block",
+        {   "key": "picture",
+            "type": "image",
             "styles": {
                 "top": 150,
                 "left": "5%",
-                "right": "5%",
-                "height": "auto"
+                "width": 450,
+                "height": 450,
+                "padding": [ 0 ]
             },
-            "content": [
-                {   "key": "picture",
-                    "type": "image",
-                    "styles": {
-                        "top": 0,
-                        "left": 0,
-                        "width": 450,
-                        "height": 450,
-                        "padding": [ 0 ]
-                    },
-                    "content": "@picture"
-                },
-                {   "key": "description",
-                    "type": "text",
-                    "styles": {
-                        "top": 0,
-                        "left": 450,
-                        "right": 0,
-                        "height": "auto",
-                        "padding": [ 8 ],
-                        "font-size": 32,
-                        "color": "black"
-                    },
-                    "content": "@description"
-                }
-            ]
+            "content": "@picture"
+        },
+        {   "key": "description",
+            "type": "text",
+            "styles": {
+                "top": 150,
+                "left": "calc(5% + 450px)",
+                "right": "5%",
+                "height": "auto",
+                "padding": [ 8 ],
+                "font-size": 32,
+                "color": "black"
+            },
+            "content": "@description"
         },
         {   "key": "main",
             "group": "options",
