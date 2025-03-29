@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Geometric Music Generator</title>
+        <link rel="stylesheet" type="text/css" href="styles/music.css" />
+    </head>
+    <body>
+        <div class="-row">
+            <div class="control">
+                <dl class="helper">
+                    <dt>Q</dt>
+                    <dd>Sine wave</dd>
+                    <dt>W</dt>
+                    <dd>Square wave</dd>
+                    <dt>E</dt>
+                    <dd>Triangle wave</dd>
+                    <dt>R</dt>
+                    <dd>Sawtooth wave</dd>
+                    <dt>SPACE</dt>
+                    <dd>Reset</dd>
+                </dl>
+                <ul id="balls"></ul>
+            </div>
+            <div class="-warpper">
+                <canvas id="playground"></canvas>
+            </div>
+        </div>
+        <script type="module" src="scripts_v3/music.js"></script>
+    </body>
+</html>
