@@ -12,11 +12,27 @@ const PI2 = Math.PI * 2;
 \*------------------------------------------------------------*/
 let notes = [];
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function getColorForFreq(freq) {
+    // 12 半音對應 hue
+    const baseFreq = 261.63; // C4
+    //const semitoneRatio = Math.pow(2, 1 / 12);
+    
+    // 計算距離 C4 幾個半音
+    const semitones = Math.round(Math.log2(freq / baseFreq) * 12);
+    
+    const hue = ((semitones % 12 + 12) % 12) * 30; // 每個半音間隔 30 度 (360/12)
+    const octave = Math.floor(semitones / 12);
+    
+    const lightness = 60 + octave * 5;  // 八度越高越亮（可調整）
+    return `hsl(${hue}, 100%, ${Math.min(lightness, 90)}%)`;
+}
+
 class NoteArc {
-    constructor(name, freqency, color, angleStart, angleEnd) {
+    constructor(name, freqency, angleStart, angleEnd) {
         this.name = name;
         this.freqency = freqency;
-        this.color = color;
+        this.color = getColorForFreq(freqency);
         this.flashTimer = 0;
         this.textTimer = 0;
         this.angleStart = angleStart;
@@ -30,8 +46,6 @@ class NoteArc {
     }
 
     play(ball) {
-        /*const volumn = ball.radius / 2,
-            velocity = ball.speed / 5;*/
         const volumn = ball.radius / 8 * ball.speed / 5,
             velocity = ball.radius / 8 * ball.speed / 5;
         const baseDuration = Math.max(0.4, 1.5 - velocity * 0.8);
@@ -92,25 +106,45 @@ class NoteArc {
         let last = 0, div = PI2 / inputs.length;
         inputs.forEach((it)=>{
             let next = last + div;
-            new NoteArc(it.mark, it.freq, it.color, last, next);
+            new NoteArc(it.mark, it.freq, last, next);
             last = next;
         });
     }
 }
 
-const DEFAULT_NOTES = [
-    { mark: "C", freq: 261.63, color: "#f00" },
-    //{ mark: "C#", freq: 277.18, color: "#f80" },
-    { mark: "D", freq: 293.66, color: "#fa0" },
-    //{ mark: "D#", freq: 311.13, color: "#ff0" },
-    { mark: "E", freq: 329.63, color: "#8f0" },
-    { mark: "F", freq: 349.23, color: "#0f0" },
-    //{ mark: "F#", freq: 369.99, color: "#0f8" },
-    { mark: "G", freq: 392.00, color: "#0ff" },
-    //{ mark: "G#", freq: 415.30, color: "#08f" },
-    { mark: "A", freq: 440.00, color: "#00f" },
-    //{ mark: "A#", freq: 466.16, color: "#80f" },
-    { mark: "B", freq: 493.88, color: "#f0f" }
+const NOTES_12 = [
+    { mark: "F#", freq: 369.99 },
+    { mark: "E",  freq: 329.63 },
+    { mark: "G#", freq: 415.30 },
+    { mark: "D",  freq: 293.66 },
+    { mark: "A",  freq: 440.00 },
+    { mark: "C",  freq: 261.63 },
+    { mark: "A#", freq: 466.16 },
+    { mark: "C#", freq: 277.18 },
+    { mark: "B",  freq: 493.88 },
+    { mark: "D#", freq: 311.13 },
+    { mark: "G",  freq: 392.00 },
+    { mark: "F",  freq: 349.23 }
+];
+
+const NOTES_7 = [
+    { mark: "F",  freq: 349.23 },
+    { mark: "D",  freq: 293.66 },
+    { mark: "G",  freq: 392.00 },
+    { mark: "E",  freq: 329.63 },
+    { mark: "A",  freq: 440.00 },
+    { mark: "C",  freq: 261.63 },
+    { mark: "B",  freq: 493.88 }
+];
+
+const NOTES_SP = [
+    { mark: "C",  freq: 261.63 },
+    { mark: "E",  freq: 329.63 },
+    { mark: "G#", freq: 415.30 },
+    { mark: "C",  freq: 523.25 },
+    { mark: "A#", freq: 466.16 },
+    { mark: "F#", freq: 369.99 },
+    { mark: "D",  freq: 293.66 }
 ];
 
 /*------------------------------------------------------------*\
@@ -315,7 +349,7 @@ function initialize(c, p) {
 
     panel = find(p,HTMLUListElement);
 
-    NoteArc.Setup(DEFAULT_NOTES);
+    NoteArc.Setup(NOTES_7);
     update();
 }
 
