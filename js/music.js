@@ -103,6 +103,7 @@ class NoteArc {
     }
 
     static Setup(inputs) {
+        notes = [];
         let last = 0, div = PI2 / inputs.length;
         inputs.forEach((it)=>{
             let next = last + div;
@@ -145,6 +146,14 @@ const NOTES_SP = [
     { mark: "A#", freq: 466.16 },
     { mark: "F#", freq: 369.99 },
     { mark: "D",  freq: 293.66 }
+];
+
+const NOTES_PENTA = [
+    { mark: "宮", freq: 261.63 },  // C
+    { mark: "商", freq: 293.66 },  // D
+    { mark: "角", freq: 329.63 },  // E
+    { mark: "徵", freq: 392.00 },  // G
+    { mark: "羽", freq: 440.00 }   // A
 ];
 
 /*------------------------------------------------------------*\
@@ -301,7 +310,7 @@ function find(e,t) {
     return null;
 }
 
-function initialize(c, p) {
+function initialize(c, p, arcs) {
     canvas = find(c,HTMLCanvasElement);
     if (canvas==null) {
         console.error("No canvas assigned!",c);
@@ -349,7 +358,7 @@ function initialize(c, p) {
 
     panel = find(p,HTMLUListElement);
 
-    NoteArc.Setup(NOTES_7);
+    NoteArc.Setup(arcs || NOTES_PENTA);
     update();
 }
 
