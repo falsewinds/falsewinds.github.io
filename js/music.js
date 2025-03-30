@@ -149,11 +149,11 @@ const NOTES_SP = [
 ];
 
 const NOTES_PENTA = [
-    { mark: "宮", freq: 261.63 },  // C
-    { mark: "商", freq: 293.66 },  // D
-    { mark: "角", freq: 329.63 },  // E
-    { mark: "徵", freq: 392.00 },  // G
-    { mark: "羽", freq: 440.00 }   // A
+    { mark: "C", freq: 261.63 },  // 宮
+    { mark: "D", freq: 293.66 },  // 商
+    { mark: "E", freq: 329.63 },  // 角
+    { mark: "G", freq: 392.00 },  // 徵
+    { mark: "A", freq: 440.00 }   // 羽
 ];
 
 /*------------------------------------------------------------*\
@@ -182,6 +182,16 @@ function predictTrajectory(pt,v,r,limit=20) {
     return hits;
 }
 
+const waveTypes = [ "sine", "triangle", "square", "sawtooth" ];
+
+function extract(args, key, check, def) {
+    if (key in args) {
+        let v = args[key];
+        return check(v) ? v : def;
+    }
+    return def;
+}
+
 class MusicBall {
     constructor(pos,vel,args) {
         args = args || {};
@@ -190,8 +200,8 @@ class MusicBall {
         vel = Point2D.Create(vel);
         this.velocity = vel.clone();
         this.speed = vel.length();
-        this.radius = currentBallRadius
-        this.waveType = currentWaveType;
+        this.radius = extract(args,"radius",(r) => !isNaN(r),currentBallRadius);
+        this.waveType = extract(args,"wave",(w) => waveTypes.includes(w),currentWaveType);
         this.tracks = [];
 
         balls.push(this);
@@ -363,6 +373,22 @@ function initialize(c, p, arcs) {
 }
 
 /*------------------------------------------------------------*\
+ * add
+\*------------------------------------------------------------*/
+function add(a, r, b, s, w) {
+    let bp = cp.clone().add(
+        Math.cos(a*PI2) * r * radius,
+        Math.sin(a*PI2) * r * radius
+    ), v = Point2D.Create(
+        Math.cos(b*PI2),
+        Math.sin(b*PI2)
+    ).mul(s*radius*0.1);
+    new MusicBall(bp,v,{
+        "wave": w
+    });
+}
+
+/*------------------------------------------------------------*\
  * update
 \*------------------------------------------------------------*/
 function update() {
@@ -412,4 +438,4 @@ function update() {
 }
 
 
-export { MusicBall, NoteArc, initialize };
+export { MusicBall, NoteArc, initialize, add };

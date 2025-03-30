@@ -19,6 +19,8 @@
                 <dd>Sawtooth wave</dd>
                 <dt>SPACE</dt>
                 <dd>Reset</dd>
+                <dt>G</dt>
+                <dd>Random ball</dd>
             </dl>
             <ul id="balls"></ul>
         </div>
@@ -28,6 +30,14 @@
         <script type="module">
 import * as Music from "./js/music.js";
 Music.initialize("#playground","#balls");
+Music.add(0.3,0.5,0,0.5,"triangle");
+document.addEventListener("keydown",(e)=>{
+    if (e.key!="g") { return; }
+    Music.add(
+        Math.random(),Math.random()*0.4+0.1,
+        Math.random()*0.2,Math.random()*0.2+0.2
+    );
+});
         </script>
     </body>
 </html>
