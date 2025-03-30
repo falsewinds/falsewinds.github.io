@@ -1,0 +1,91 @@
+
+body
+{
+    margin: 0;
+    background: #111;
+    overflow: hidden;
+}
+
+.-row
+{
+    position: fixed;
+    inset: 0px;
+    display: flex;
+    margin: 0px;
+    outline: 0px;
+    border: 0px;
+    padding: 0px;
+}
+
+.control
+{
+    position: fixed;
+    inset: 0px auto 0px 0px;
+    display: block;
+    width: 300px;
+}
+
+.control > dl
+{
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    row-gap: 8px;
+    margin: 8px;
+    outline: 0px;
+    border: 0px;
+    padding: 8px;
+    font-size: 18px;
+    font-family: 'Courier New', Courier, monospace;
+    line-height: 20px;
+    color: white;
+}
+
+.control > dl > dt
+{
+    box-sizing: border-box;
+    border: 1px solid white;
+    border-radius: 4px;
+    padding: 4px;
+    text-align: center;
+}
+
+.control > dl > dd
+{
+    margin-left: 4px;
+    padding: 4px;
+}
+
+.control > ul
+{
+    list-style-type: none;
+    display: block;
+    margin-top: 24px;
+    outline: 0px;
+    border: 0px;
+    padding: 0px;
+    color: white;
+}
+
+.control > ul > li
+{
+    display: block;
+    margin: 4px;
+    outline: 0px;
+    border: 1px solid white;
+    padding: 8px;
+}
+
+.warpper
+{
+    position: fixed;
+    inset: 0px 0px 0px 300px;
+    display: block;
+}
+
+canvas
+{
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+}
