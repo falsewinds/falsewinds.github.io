@@ -1,0 +1,425 @@
+<!doctype html>
+<meta charset="utf-8"/>
+<title>Human-ish Nonverbal Voice Synth (WebAudio, LF + Formant) · Debug</title>
+<style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "PingFang TC", "Microsoft JhengHei", Arial, sans-serif; line-height:1.5; padding:24px; }
+    .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin: 8px 0; }
+    label { display:flex; align-items:center; gap:6px; }
+    input[type="number"] { width: 90px; }
+    input[type="range"] { width: 180px; }
+    select { padding:4px; }
+    .hint { color:#666; font-size: 12px; }
+    .card { padding:16px; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin:16px 0; }
+    button { padding:8px 14px; border-radius:10px; border:1px solid #ddd; background:#f8fafc; cursor:pointer; }
+    button:active { transform: translateY(1px); }
+</style>
+
+<h2>非語言人聲合成（WebAudio · LF + Formant）</h2>
+<div class="card">
+    <div class="row">
+        <label>預設聲音
+            <select id="preset">
+                <optgroup label="非語言（中文）">
+                    <option value="欸">欸（驚訝）</option>
+                    <option value="咦">咦（上挑）</option>
+                    <option value="啊！">啊（驚呼）</option>
+                    <option value="喔！">喔（感嘆）</option>
+                    <option value="嗯">嗯（閉口 m）</option>
+                    <option value="哼">哼（h+鼻化）</option>
+                    <option value="尖叫">（尖叫）</option>
+                    <option value="呻吟">（呻吟）</option>
+                    <option value="嘆氣">（嘆氣）</option>
+                </optgroup>
+                <optgroup label="單純母音">
+                    <option value="a">a</option>
+                    <option value="i">i</option>
+                    <option value="u">u</option>
+                    <option value="e">e</option>
+                    <option value="o">o</option>
+                    <option value="m_vowel">m（鼻化母音）</option>
+                </optgroup>
+            </select>
+        </label>
+        <label>說話者
+            <select id="speaker">
+                <option value="adult_male">成人男性</option>
+                <option value="adult_female">成人女性</option>
+                <option value="child">兒童</option>
+                <option value="teen_male_pre">中學男（變聲前）</option>
+                <option value="teen_male_post">中學男（變聲後）</option>
+                <option value="teen_female">中學女</option>
+            </select>
+        </label>
+        <label>基頻 f0 (Hz)
+            <input id="f0" type="number" value="146" step="1">
+        </label>
+        <label>長度 (秒)
+            <input id="dur" type="number" value="1.0" step="0.1">
+        </label>
+        <button id="play">播放</button>
+        <button id="beep">Test Beep</button>
+        <button id="dump">Dump debug</button>
+    </div>
+    <div class="row">
+        <label>強度
+            <input id="intensity" type="range" min="0" max="1" value="0.8" step="0.01">
+        </label>
+        <label>亮度
+            <input id="brightness" type="range" min="0" max="1" value="0.5" step="0.01">
+        </label>
+        <label>氣音
+            <input id="breathiness" type="range" min="0" max="1" value="0.08" step="0.01">
+        </label>
+        <label>鼻化
+            <input id="nasality" type="range" min="0" max="1" value="0.0" step="0.01">
+        </label>
+        <label>顫音 (Hz)
+            <input id="vibRate" type="number" value="5.5" step="0.1">
+        </label>
+        <label>顫音深度 (cents)
+            <input id="vibCents" type="number" value="20" step="1">
+        </label>
+        <label>
+            <input id="bypass" type="checkbox"> bypass filters
+        </label>
+        <label>
+            <input id="autogain" type="checkbox" checked> auto gain
+        </label>
+    </div>
+    <div class="hint">若沒聲音：先按「Test Beep」。若有聲但主合成沒聲，勾選「bypass filters」再試；或按「Dump debug」把 console 結果貼給我。</div>
+</div>
+<pre id="log" class="hint"></pre>
+
+<script>
+    "use strict";
+
+    // ---------- 全域 AudioContext ----------
+    let ctx = null;
+    async function ensureCtx() {
+        if (!ctx) {
+            try {
+                ctx = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.error("AudioContext init failed:", e);
+                throw e;
+            }
+        }
+        if (ctx.state === "suspended") {
+            try { await ctx.resume(); } catch (e) { console.warn("resume failed:", e); }
+        }
+        return ctx;
+    }
+
+    // ---------- 工具 ----------
+    const SR = 48000; // 內部運算採 48k，最後照 ctx.sampleRate 播放
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function linAt(t, curve) {
+        if (!curve || curve.length === 0) return 0;
+        if (t <= curve[0][0]) return curve[0][1];
+        if (t >= curve[curve.length - 1][0]) return curve[curve.length - 1][1];
+        for (let i = 0; i < curve.length - 1; i++) {
+            const [t0, v0] = curve[i];
+            const [t1, v1] = curve[i + 1];
+            if (t0 <= t && t <= t1) {
+                const u = (t - t0) / (t1 - t0);
+                return lerp(v0, v1, u);
+            }
+        }
+        return curve[curve.length - 1][1];
+    }
+    function cents2ratio(c) { return Math.pow(2, c / 1200); }
+
+    // biquad
+    function norm(b0, b1, b2, a0, a1, a2) { return { b0: b0 / a0, b1: b1 / a0, b2: b2 / a0, a1: a1 / a0, a2: a2 / a0 }; }
+    function biquadLP(f0, Q) { const w = 2 * Math.PI * f0 / SR, a = Math.sin(w) / (2 * Q); const b0 = (1 - Math.cos(w)) / 2, b1 = 1 - Math.cos(w), b2 = (1 - Math.cos(w)) / 2, a0 = 1 + a, a1 = -2 * Math.cos(w), a2 = 1 - a; return norm(b0, b1, b2, a0, a1, a2); }
+    function biquadHP(f0, Q) { const w = 2 * Math.PI * f0 / SR, a = Math.sin(w) / (2 * Q); const b0 = (1 + Math.cos(w)) / 2, b1 = -(1 + Math.cos(w)), b2 = (1 + Math.cos(w)) / 2, a0 = 1 + a, a1 = -2 * Math.cos(w), a2 = 1 - a; return norm(b0, b1, b2, a0, a1, a2); }
+    function biquadBP(f0, Q) { const w = 2 * Math.PI * f0 / SR, a = Math.sin(w) / (2 * Q); const b0 = a, b1 = 0, b2 = -a, a0 = 1 + a, a1 = -2 * Math.cos(w), a2 = 1 - a; return norm(b0, b1, b2, a0, a1, a2); }
+    function biquadNotch(f0, Q) { const w = 2 * Math.PI * f0 / SR, a = Math.sin(w) / (2 * Q); const b0 = 1, b1 = -2 * Math.cos(w), b2 = 1, a0 = 1 + a, a1 = -2 * Math.cos(w), a2 = 1 - a; return norm(b0, b1, b2, a0, a1, a2); }
+    function biquadProcessInPlace(buf, c) {
+        let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+        for (let i = 0; i < buf.length; i++) {
+            const x = buf[i];
+            const y = c.b0 * x + c.b1 * x1 + c.b2 * x2 - c.a1 * y1 - c.a2 * y2;
+            x2 = x1; x1 = x; y2 = y1; y1 = y; buf[i] = y;
+        }
+        return buf;
+    }
+
+    // 漫步器
+    function makeDrifter(baseHz, cents = 12, pull = 0.02) {
+        let curr = baseHz;
+        return () => {
+            const tgt = baseHz * cents2ratio((Math.random() * 2 - 1) * cents);
+            curr += (tgt - curr) * pull;
+            return curr;
+        };
+    }
+
+    // 說話者縮放
+    const SPEAKERS = {
+        "adult_male":      { scale: 1.00, f0_suggest: 146 },
+        "adult_female":    { scale: 1.15, f0_suggest: 200 },
+        "child":           { scale: 1.30, f0_suggest: 280 },
+        "teen_male_pre":   { scale: 1.10, f0_suggest: 200 },
+        "teen_male_post":  { scale: 1.00, f0_suggest: 150 },
+        "teen_female":     { scale: 1.08, f0_suggest: 210 }
+    };
+
+    // Presets（略：與前版相同）
+    const PRESETS = {
+        "a": { dur: 1.0, F: [[0,[730,1090,2440]],[1,[730,1090,2440]]], notches: [], f0c: [[0,0],[1,0]], tilt: [[0,-12],[1,-12]], asp: [[0,0.06],[1,0.06]], nas: [[0,0],[1,0]], env: {a:12,h:200,r:160} },
+        "i": { dur: 1.0, F: [[0,[270,2290,3010]],[1,[270,2290,3010]]], notches: [], f0c: [[0,0],[1,0]], tilt: [[0,-12],[1,-12]], asp: [[0,0.05],[1,0.05]], nas: [[0,0],[1,0]], env: {a:12,h:200,r:160} },
+        "u": { dur: 1.0, F: [[0,[300,870,2240]],[1,[300,870,2240]]], notches: [], f0c: [[0,0],[1,0]], tilt: [[0,-13],[1,-13]], asp: [[0,0.06],[1,0.06]], nas: [[0,0],[1,0]], env: {a:12,h:200,r:160} },
+        "e": { dur: 1.0, F: [[0,[530,1840,2480]],[1,[530,1840,2480]]], notches: [], f0c: [[0,0],[1,0]], tilt: [[0,-12],[1,-12]], asp: [[0,0.06],[1,0.06]], nas: [[0,0],[1,0]], env: {a:12,h:200,r:160} },
+        "o": { dur: 1.0, F: [[0,[450,900,2600]],[1,[420,800,2600]]], notches: [], f0c: [[0,-20],[1,-80]], tilt: [[0,-13],[1,-13]], asp: [[0,0.06],[1,0.06]], nas: [[0,0],[1,0]], env: {a:16,h:240,r:200} },
+        "m_vowel": { dur: 1.0, F: [[0,[330,1100,2550]],[1,[330,1100,2550]]], notches: [{f:800,Q:4,depthDb:10}], f0c: [[0,0],[1,0]], tilt: [[0,-12],[1,-12]], asp: [[0,0.08],[1,0.08]], nas: [[0,1],[1,1]], env: {a:15,h:220,r:200} },
+
+        "欸": { dur:0.18, F:[[0,[530,1840,2500]],[1,[300,2300,3000]]], notches:[], f0c:[[0,+40],[0.05,0],[0.80,+20],[1,0]], tilt:[[0,-12],[1,-10]], asp:[[0,0.10],[0.06,0.06],[1,0.04]], nas:[[0,0],[1,0]], env:{a:12,h:30,r:120} },
+        "咦": { dur:0.20, F:[[0,[270,2290,3010]],[1,[270,2290,3010]]], notches:[], f0c:[[0,0],[1,+280]], tilt:[[0,-11],[1,-11]], asp:[[0,0.05],[1,0.05]], nas:[[0,0],[1,0]], env:{a:15,h:40,r:120} },
+        "啊！": { dur:0.35, F:[[0,[730,1090,2440]],[1,[730,1090,2440]]], notches:[], f0c:[[0,-50],[0.03,0],[0.70,+30],[1,0]], tilt:[[0,-9],[1,-9]], asp:[[0,0.05],[1,0.05]], nas:[[0,0],[1,0]], env:{a:8,h:60,r:150} },
+        "喔！": { dur:0.40, F:[[0,[450,900,2600]],[1,[420,800,2600]]], notches:[], f0c:[[0,0],[1,-90]], tilt:[[0,-13],[1,-13]], asp:[[0,0.06],[1,0.06]], nas:[[0,0],[1,0]], env:{a:20,h:80,r:180} },
+        "嗯": { dur:0.35, F:[[0,[330,1100,2550]],[1,[330,1100,2550]]], notches:[{f:800,Q:4,depthDb:10}], f0c:[[0,0],[1,+30]], tilt:[[0,-12],[1,-12]], asp:[[0,0.10],[1,0.08]], nas:[[0,1],[1,1]], env:{a:15,h:120,r:120}, lp:8000 },
+        "哼": { dur:0.35, preNoiseMs:90, F:[[0,[540,1500,2500]],[1,[540,1500,2500]]], notches:[{f:3000,Q:5,depthDb:8}], f0c:[[0,-40],[0.08,0],[1,0]], tilt:[[0,-12],[1,-12]], asp:[[0,0.10],[1,0.10]], nas:[[0,0.8],[1,0.8]], env:{a:20,h:120,r:120}, lp:8000 },
+        "尖叫": { dur:0.5, F:[[0,[350,2500,3200]],[1,[350,2600,3300]]], notches:[], f0c:[[0,0],[1,+900]], tilt:[[0,-8],[1,-6]], asp:[[0,0.10],[1,0.12]], nas:[[0,0],[1,0]], env:{a:5,h:120,r:200}, hp:90 },
+        "呻吟": { dur:0.6, F:[[0,[500,1200,2400]],[1,[400,1000,2400]]], notches:[], f0c:[[0,0],[0.4,+150],[0.8,-150],[1,0]], tilt:[[0,-14],[1,-14]], asp:[[0,0.10],[1,0.10]], nas:[[0,0.2],[1,0.2]], env:{a:40,h:300,r:250} },
+        "嘆氣": { dur:0.9, preNoiseMs:300, F:[[0,[500,1200,2400]],[1,[500,1200,2400]]], notches:[], f0c:[[0,-200],[1,-500]], tilt:[[0,-18],[1,-20]], asp:[[0,0.16],[1,0.18]], nas:[[0,0],[1,0]], env:{a:30,h:400,r:600} }
+    };
+
+    // 產生序列
+    function buildSeries(n, curve) {
+        const out = new Float32Array(n);
+        for (let i = 0; i < n; i++) {
+            const t = i / Math.max(1, n - 1);
+            out[i] = linAt(t, curve);
+        }
+        return out;
+    }
+    function makeF0Series(n, baseF0, centsCurve, vibHz, vibCents) {
+        const centsSeries = buildSeries(n, centsCurve);
+        const f0 = new Float32Array(n);
+        const vibDepth = Math.pow(2, vibCents / 1200) - 1;
+        for (let i = 0; i < n; i++) {
+            const vib = vibDepth * Math.sin(2 * Math.PI * vibHz * (i / SR));
+            f0[i] = baseF0 * Math.pow(2, centsSeries[i] / 1200) * (1 + vib);
+        }
+        return f0;
+    }
+    function applyEnvelopeInPlace(buf, atkMs, relMs) {
+        const a = Math.floor(SR * atkMs / 1000);
+        const r = Math.floor(SR * relMs / 1000);
+        const n = buf.length;
+        for (let i = 0; i < a && i < n; i++) buf[i] *= i / Math.max(1, a);
+        for (let i = 0; i < r && i < n; i++) buf[n - 1 - i] *= 1 - i / Math.max(1, r);
+    }
+
+    // 聲門（LF-like）
+    function lf_like_flow_series(num, f0Series, aspirSeries, opt = {}) {
+        const { jitter = 0.004, shimmer = 0.03 } = opt;
+        const y = new Float32Array(num);
+        const Oq = 0.58, Cq = 0.35;
+        let phase = 0, prev_g = 0;
+        for (let n = 0; n < num; n++) {
+            const f0 = Math.max(30, f0Series[n] || 0);
+            const inc = (f0 * (1 + jitter * (Math.random() * 2 - 1))) / SR;
+            phase += inc; if (phase >= 1) phase -= 1;
+
+            let g = 0;
+            if (phase < Oq) {
+                const x = phase / Oq; g = Math.sin(Math.PI * x * 0.5);
+            } else {
+                const x = (phase - Oq) / (1 - Oq); g = Math.pow(1 - x, 1.0 / Cq);
+            }
+            const openMask = (phase < Oq) ? 1.0 : 0.2;
+            const noise = (Math.random() * 2 - 1) * 0.25 * (aspirSeries[n] || 0) * openMask;
+            const glot = (g - prev_g) + noise; prev_g = g;
+
+            y[n] = (1 + shimmer * (Math.random() * 2 - 1)) * glot;
+        }
+        biquadProcessInPlace(y, biquadHP(70, 0.707));
+        return y;
+    }
+
+    // 傾斜近似
+    function apply_tilt_proxy(slice, tilt_db_per_oct) {
+        const b = Math.max(0, Math.min(1, 1 - ((-tilt_db_per_oct - 6) / 12))); // -6 -> 1, -18 -> 0
+        const hp = new Float32Array(slice);
+        const lp = new Float32Array(slice);
+        biquadProcessInPlace(hp, biquadHP(800, 0.707));
+        biquadProcessInPlace(lp, biquadLP(8000, 0.707));
+        for (let i = 0; i < slice.length; i++) {
+            slice[i] = b * hp[i] + (1 - b) * lp[i];
+        }
+    }
+
+    // Normalize / Soft clip
+    function normalizeAuto(buf, targetRMS = 0.25) {
+        let sum = 0, peak = 0;
+        for (let i = 0; i < buf.length; i++) {
+            const x = buf[i];
+            sum += x * x;
+            const ax = Math.abs(x);
+            if (ax > peak) peak = ax;
+        }
+        const rms = Math.sqrt(sum / Math.max(1, buf.length));
+        if (rms > 0) {
+            const g = targetRMS / rms;
+            for (let i = 0; i < buf.length; i++) buf[i] *= g;
+        }
+        // soft clip
+        for (let i = 0; i < buf.length; i++) buf[i] = Math.tanh(buf[i] * 1.5);
+        return { rms: rms, peak: peak };
+    }
+
+    // 主流程
+    async function playPreset() {
+        await ensureCtx();
+
+        const presetName = document.getElementById('preset').value;
+        const spk = SPEAKERS[document.getElementById('speaker').value];
+        const durInput = parseFloat(document.getElementById('dur').value || "1.0");
+        const baseF0 = parseFloat(document.getElementById('f0').value || spk.f0_suggest);
+        const intensity = parseFloat(document.getElementById('intensity').value);
+        const brightness = parseFloat(document.getElementById('brightness').value);
+        const breathiness = parseFloat(document.getElementById('breathiness').value);
+        const nasality = parseFloat(document.getElementById('nasality').value);
+        const vibHz = parseFloat(document.getElementById('vibRate').value || "5.5");
+        const vibCents = parseFloat(document.getElementById('vibCents').value || "20");
+        const bypass = document.getElementById('bypass').checked;
+        const autogain = document.getElementById('autogain').checked;
+
+        const P = PRESETS[presetName] || PRESETS["欸"];
+        const voicedDur = (P.dur ? P.dur : durInput);
+        const nVoiced = Math.max(1, Math.floor(SR * voicedDur));
+        const nPre = Math.floor(SR * ((P.preNoiseMs || 0) / 1000));
+        const nOut = nPre + nVoiced;
+
+        const f0Series = makeF0Series(nVoiced, baseF0, P.f0c || [[0,0],[1,0]], vibHz, vibCents);
+        const aspSeries = buildSeries(nVoiced, P.asp || [[0,0.08],[1,0.08]]);
+        const s = spk.scale;
+
+        const aspScaled = Float32Array.from(aspSeries, v => v * (0.04 + breathiness * 0.14));
+        const src = lf_like_flow_series(nVoiced, f0Series, aspScaled);
+
+        const out = new Float32Array(nOut);
+
+        // Pre-noise
+        if (nPre > 0) {
+            const asp = new Float32Array(nPre);
+            for (let i = 0; i < nPre; i++) asp[i] = (Math.random() * 2 - 1) * 0.12 * (0.6 + breathiness * 0.8);
+            biquadProcessInPlace(asp, biquadHP(600, 0.707));
+            biquadProcessInPlace(asp, biquadLP(8000, 0.707));
+            out.set(asp, 0);
+        }
+
+        // 濾波流程
+        const frameLen = Math.floor(SR * 0.05);
+        const formantAt = (t) => {
+            const targets = P.F || [[0,[500,1200,2400]],[1,[500,1200,2400]]];
+            if (t <= targets[0][0]) return targets[0][1];
+            if (t >= targets[targets.length - 1][0]) return targets[targets.length - 1][1];
+            for (let i = 0; i < targets.length - 1; i++) {
+                const [t0, v0] = targets[i], [t1, v1] = targets[i + 1];
+                if (t0 <= t && t <= t1) {
+                    const u = (t - t0) / (t1 - t0);
+                    return [ lerp(v0[0], v1[0], u), lerp(v0[1], v1[1], u), lerp(v0[2], v1[2], u) ];
+                }
+            }
+            return targets[targets.length - 1][1];
+        };
+
+        let F1d = null, F2d = null, F3d = null;
+        for (let sidx = 0; sidx < nVoiced; sidx += frameLen) {
+            const eidx = Math.min(nVoiced, sidx + frameLen);
+            const slice = new Float32Array(src.subarray(sidx, eidx));
+            const tmid = ((sidx + eidx) / 2) / nVoiced;
+
+            if (!bypass) {
+                const Fmid = formantAt(tmid);
+                if (!F1d) {
+                    F1d = makeDrifter(Fmid[0] * s, 12, 0.02);
+                    F2d = makeDrifter(Fmid[1] * s, 12, 0.02);
+                    F3d = makeDrifter(Fmid[2] * s, 18, 0.02);
+                }
+                const F1 = F1d(), F2 = F2d(), F3 = F3d();
+                const B1 = 100 + 40 * intensity, B2 = 140 + 40 * intensity, B3 = 220 + 60 * intensity;
+                const Q1 = Math.max(3.5, F1 / Math.max(60, B1));
+                const Q2 = Math.max(3.5, F2 / Math.max(80, B2));
+                const Q3 = Math.max(4.0, F3 / Math.max(120, B3));
+                biquadProcessInPlace(slice, biquadBP(F1, Q1));
+                biquadProcessInPlace(slice, biquadBP(F2, Q2));
+                biquadProcessInPlace(slice, biquadBP(F3, Q3));
+
+                const nas = linAt(tmid, P.nas || [[0,0],[1,0]]) * nasality;
+                if (nas > 0.001) {
+                    biquadProcessInPlace(slice, biquadBP(300 * s, 3.0));
+                    const isM = (presetName === "嗯" || presetName === "m_vowel");
+                    const notch = isM ? biquadNotch(800 * s, 4.0) : biquadNotch(3000 * s, 5.0);
+                    biquadProcessInPlace(slice, notch);
+                    if (nas > 0.5) biquadProcessInPlace(slice, notch);
+                }
+
+                // 傾斜與頻帶
+                const tilt = linAt(tmid, P.tilt || [[0,-12],[1,-12]]);
+                const tiltAdj = lerp(tilt, -6, brightness);
+                apply_tilt_proxy(slice, tiltAdj);
+                if (P.hp) biquadProcessInPlace(slice, biquadHP(P.hp, 0.707));
+                if (P.lp) biquadProcessInPlace(slice, biquadLP(P.lp, 0.707));
+            }
+            out.set(slice, nPre + sidx);
+        }
+
+        const env = P.env || { a:12, h:80, r:160 };
+        applyEnvelopeInPlace(out, env.a, env.r);
+
+        let stats = { rms: 0, peak: 0 };
+        if (autogain) {
+            stats = normalizeAuto(out, 0.25);
+        }
+
+        // 播放（用 ctx.sampleRate 建 buffer，WebAudio 自動轉速率）
+        const buf = ctx.createBuffer(1, out.length, ctx.sampleRate);
+        buf.getChannelData(0).set(out);
+        const srcNode = ctx.createBufferSource();
+        srcNode.buffer = buf;
+        const gain = ctx.createGain();
+        gain.gain.value = 1.0; // 交給 auto-gain/soft-clip處理
+        srcNode.connect(gain).connect(ctx.destination);
+        srcNode.start();
+
+        document.getElementById('log').textContent =
+            `Preset=${presetName} · state=${ctx.state} · len=${out.length} · rms=${stats.rms.toFixed(4)}`;
+        window.__lastOut = out; // Dump 用
+    }
+
+    // Test Beep（確認音訊可發聲）
+    async function testBeep() {
+        await ensureCtx();
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        g.gain.value = 0.2;
+        osc.frequency.value = 880;
+        osc.connect(g).connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+        document.getElementById('log').textContent = `Beep ok · state=${ctx.state} · sampleRate=${ctx.sampleRate}`;
+    }
+
+    // Dump debug
+    function dumpDebug() {
+        const x = window.__lastOut;
+        if (!x) return console.warn("no buffer yet");
+        let sum = 0, peak = 0;
+        for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); if (a > peak) peak = a; sum += x[i] * x[i]; }
+        const rms = Math.sqrt(sum / Math.max(1, x.length));
+        console.log("len:", x.length, "rms:", rms, "peak:", peak, "first8:", Array.from(x.slice(0, 8)));
+    }
+
+    // UI 綁定
+    document.getElementById('speaker').addEventListener('change', () => {
+        const s = SPEAKERS[document.getElementById('speaker').value];
+        document.getElementById('f0').value = s.f0_suggest;
+    });
+    document.getElementById('play').onclick = playPreset;
+    document.getElementById('beep').onclick = testBeep;
+    document.getElementById('dump').onclick = dumpDebug;
+</script>

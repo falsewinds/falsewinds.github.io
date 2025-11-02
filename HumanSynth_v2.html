@@ -1,0 +1,133 @@
+<!doctype html>
+
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <title>Human-ish Nonverbal Voice Synth (WebAudio · reliable build)</title>
+        <style>
+            body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Noto Sans, "PingFang TC", "Microsoft JhengHei", Arial, sans-serif; line-height:1.5; padding:24px; }
+            .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin: 8px 0; }
+            label { display:flex; align-items:center; gap:6px; }
+            input[type="number"] { width: 90px; }
+            input[type="range"] { width: 180px; }
+            select { padding:4px; }
+            .hint { color:#666; font-size: 12px; }
+            .card { padding:16px; border:1px solid #e5e7eb; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05); margin:16px 0; }
+            button { padding:8px 14px; border-radius:10px; border:1px solid #ddd; background:#f8fafc; cursor:pointer; }
+            button:active { transform: translateY(1px); }
+        </style>
+    </head>
+
+    <body>
+        <h2>非語言／母音人聲合成（LF + Formant）</h2>
+        <div class="card">
+            <div class="row">
+                <label>聲源
+                    <select id="source">
+                        <option value="RDLF" selected>RD-LF</option>
+                        <option value="LF">LF</option>
+                    </select>
+                </label>
+                <label>預設
+                    <select id="preset">
+                        <optgroup label="母音（可長按持續）">
+                            <option value="a" selected>a</option>
+                            <option value="i">i</option>
+                            <option value="u">u</option>
+                            <option value="e">e</option>
+                            <option value="o">o</option>
+                            <option value="m_vowel">m</option>
+                        </optgroup>
+                        <optgroup label="簡單感嘆">
+                            <option value="欸">欸</option>
+                            <option value="咦">咦</option>
+                            <option value="啊！">啊！</option>
+                            <option value="喔！">喔！</option>
+                            <option value="嗯">嗯（鼻化）</option>
+                            <option value="哼">哼（前置氣音+鼻化）</option>
+                            <option value="尖叫">尖叫</option>
+                            <option value="呻吟">呻吟</option>
+                            <option value="嘆氣">嘆氣</option>
+                        </optgroup>
+                    </select>
+                </label>
+                <label>說話者
+                    <select id="speaker">
+                        <option value="adult_male">成人男性</option>
+                        <option value="adult_female">成人女性</option>
+                        <option value="child">兒童</option>
+                        <!--<option value="teen_male_post">中學男</option>
+                        <option value="teen_female">中學女</option>-->
+                    </select>
+                </label>
+                <label>f0 (Hz)
+                    <input id="f0" type="number" value="146" step="1">
+                </label>
+                <label>長度 (秒)
+                    <input id="dur" type="number" value="1.2" step="0.1">
+                </label>
+                <button id="play">播放聲音</button>
+                <button id="melody">播放音階</button>
+                <button id="beep">Test Beep</button>
+            </div>
+            <div class="row">
+                <label>強度
+                    <input id="intensity" type="range" min="0" max="1" value="0.25" step="0.01">
+                </label>
+                <label>亮度
+                    <input id="brightness" type="range" min="0" max="1" value="0.5" step="0.01">
+                </label>
+                <label>氣音
+                    <input id="breathiness" type="range" min="0" max="1" value="0.08" step="0.01">
+                </label>
+                <label>鼻化
+                    <input id="nasality" type="range" min="0" max="1" value="0.3" step="0.01">
+                </label>
+                <label>顫音 (Hz)
+                    <input id="vibRate" type="number" value="5.5" step="0.1">
+                </label>
+                <label>顫音深度 (cents)
+                    <input id="vibCents" type="number" value="20" step="1">
+                </label>
+            </div>
+            <div class="hint">如果沒聲音：先按 Test Beep；或點一下頁面再按播放。調整亮度/鼻化/氣音應該能立即聽出差異。</div>
+        </div>
+        <pre id="log" class="hint"></pre>
+
+        <script type="module">
+            import { playOnce, testBeep, playMelody } from "./js/human_symth_v2.js";
+
+            function get_settings() {
+                return {
+                    "source": document.getElementById("source").value,
+                    "preset": document.getElementById("preset").value,
+                    "speaker": document.getElementById("speaker").value,
+                    "duration": parseFloat(document.getElementById("dur").value),
+                    "f0": parseFloat(document.getElementById("f0").value),
+                    "intensity": parseFloat(document.getElementById("intensity").value),
+                    "brightness": parseFloat(document.getElementById("brightness").value),
+                    "breathiness": parseFloat(document.getElementById("breathiness").value),
+                    "nasality": parseFloat(document.getElementById("nasality").value),
+                    "vibHz": parseFloat(document.getElementById("vibRate").value),
+                    "vibCents": parseFloat(document.getElementById("vibCents").value)
+                };
+            }
+            // ========= UI 綁定 =========
+            document.getElementById("play").addEventListener("click", ()=>{
+                let setting = get_settings();
+                playOnce(setting);
+                document.getElementById("log").textContent =
+                    `播放：${setting.preset} · f0=${setting.f0}Hz · dur=${setting.duration}s · 亮度=${setting.brightness.toFixed(2)} · 鼻化=${setting.nasality.toFixed(2)}`;
+            });
+            document.getElementById("melody").addEventListener("click", ()=>{
+                let setting = get_settings();
+                playMelody(
+                    [["C4",0.35],["D4",0.35],["E4",0.35],["F4",0.35],["G4",0.35],["A4",0.35],["B4",0.35],["C5",0.7],
+                    ["B4",0.35],["A4",0.35],["G4",0.35],["F4",0.35],["E4",0.35],["D4",0.35],["C4",0.7]],
+                    setting
+                );
+            });
+            document.getElementById("beep").addEventListener("click", ()=>{ testBeep(); });
+        </script>
+    </body>
+</html>
