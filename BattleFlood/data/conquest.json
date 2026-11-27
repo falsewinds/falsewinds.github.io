@@ -1,0 +1,416 @@
+{
+  "version": 1,
+  "name": "三橋爭霸",
+  "description": "攻佔敵方全部生產據點。中立據點可爭奪；全局畫面可管理增援。",
+  "battlefield": {
+    "width": 120,
+    "height": 80,
+    "terrain": [
+      {
+        "type": "water",
+        "x": 57,
+        "z": 0,
+        "width": 6,
+        "height": 80
+      },
+      {
+        "type": "bridge",
+        "x": 57,
+        "z": 10,
+        "width": 6,
+        "height": 8
+      },
+      {
+        "type": "bridge",
+        "x": 57,
+        "z": 36,
+        "width": 6,
+        "height": 8
+      },
+      {
+        "type": "bridge",
+        "x": 57,
+        "z": 62,
+        "width": 6,
+        "height": 8
+      },
+      {
+        "type": "forest",
+        "shape": "circle",
+        "x": 31,
+        "z": 29,
+        "radius": 5
+      },
+      {
+        "type": "forest",
+        "shape": "circle",
+        "x": 31,
+        "z": 51,
+        "radius": 5
+      },
+      {
+        "type": "forest",
+        "shape": "circle",
+        "x": 89,
+        "z": 29,
+        "radius": 5
+      },
+      {
+        "type": "forest",
+        "shape": "circle",
+        "x": 89,
+        "z": 51,
+        "radius": 5
+      },
+      {
+        "type": "rock",
+        "shape": "circle",
+        "x": 48,
+        "z": 26,
+        "radius": 4
+      },
+      {
+        "type": "rock",
+        "shape": "circle",
+        "x": 72,
+        "z": 54,
+        "radius": 4
+      }
+    ]
+  },
+  "buffer": 500,
+  "factions": [
+    {
+      "id": 1,
+      "name": "藍方",
+      "control": "player",
+      "resource": 85
+    },
+    {
+      "id": 2,
+      "name": "紅方",
+      "control": "hybrid",
+      "resource": 70,
+      "aiInterval": 2.1,
+      "aiStartDelay": 5,
+      "aiActionInterval": 1.5,
+      "aiReactionDelay": 0.75
+    }
+  ],
+  "unitTypes": {
+    "melee": {
+      "speed": 4.2,
+      "attackRange": 1.35,
+      "attackInterval": 0.62
+    },
+    "range": {
+      "speed": 3.8,
+      "attackRange": 6.2,
+      "attackInterval": 1.08,
+      "projectileSpeed": 13.5
+    }
+  },
+  "economy": {
+    "kill": 2,
+    "loss": 0.8,
+    "time": 1.0,
+    "control": 0.05
+  },
+  "capture": {
+    "rate": 0.32,
+    "scale": 18
+  },
+  "upgradePaths": {
+    "melee_quantity": [
+      {
+        "cost": 0,
+        "productionInterval": 1.2,
+        "productionCount": 5,
+        "attack": 40,
+        "maxHP": 120
+      },
+      {
+        "cost": 42,
+        "productionInterval": 1.1,
+        "productionCount": 8,
+        "attack": 40,
+        "maxHP": 120
+      },
+      {
+        "cost": 95,
+        "productionInterval": 0.9,
+        "productionCount": 11,
+        "attack": 40,
+        "maxHP": 120
+      },
+      {
+        "cost": 170,
+        "productionInterval": 0.75,
+        "productionCount": 15,
+        "attack": 45,
+        "maxHP": 135
+      }
+    ],
+    "melee_power": [
+      {
+        "cost": 0,
+        "productionInterval": 1.35,
+        "productionCount": 5,
+        "attack": 40,
+        "maxHP": 120
+      },
+      {
+        "cost": 48,
+        "productionInterval": 1.35,
+        "productionCount": 6,
+        "attack": 50,
+        "maxHP": 130
+      },
+      {
+        "cost": 105,
+        "productionInterval": 1.15,
+        "productionCount": 7,
+        "attack": 60,
+        "maxHP": 145
+      },
+      {
+        "cost": 180,
+        "productionInterval": 1.0,
+        "productionCount": 9,
+        "attack": 75,
+        "maxHP": 160
+      }
+    ],
+    "range_quantity": [
+      {
+        "cost": 0,
+        "productionInterval": 1.2,
+        "productionCount": 5,
+        "attack": 60,
+        "maxHP": 40
+      },
+      {
+        "cost": 42,
+        "productionInterval": 1.1,
+        "productionCount": 8,
+        "attack": 60,
+        "maxHP": 40
+      },
+      {
+        "cost": 95,
+        "productionInterval": 0.9,
+        "productionCount": 11,
+        "attack": 60,
+        "maxHP": 40
+      },
+      {
+        "cost": 170,
+        "productionInterval": 0.75,
+        "productionCount": 15,
+        "attack": 65,
+        "maxHP": 55
+      }
+    ],
+    "range_power": [
+      {
+        "cost": 0,
+        "productionInterval": 1.35,
+        "productionCount": 5,
+        "attack": 60,
+        "maxHP": 40
+      },
+      {
+        "cost": 48,
+        "productionInterval": 1.35,
+        "productionCount": 6,
+        "attack": 70,
+        "maxHP": 50
+      },
+      {
+        "cost": 105,
+        "productionInterval": 1.15,
+        "productionCount": 7,
+        "attack": 80,
+        "maxHP": 65
+      },
+      {
+        "cost": 180,
+        "productionInterval": 1.0,
+        "productionCount": 9,
+        "attack": 95,
+        "maxHP": 80
+      }
+    ]
+  },
+  "spawnPoints": [
+    {
+      "id": "A",
+      "name": "西境兵營",
+      "x": 12,
+      "z": 14,
+      "kind": "melee",
+      "owner": 1,
+      "capacity": 200,
+      "radius": 9.3,
+      "upgradePath": "melee_quantity",
+      "level": 1,
+      "target": null,
+      "initialUnits": 15
+    },
+    {
+      "id": "B",
+      "name": "西境射場",
+      "x": 12,
+      "z": 40,
+      "kind": "range",
+      "owner": 1,
+      "capacity": 200,
+      "radius": 9.3,
+      "upgradePath": "range_quantity",
+      "level": 1,
+      "target": null,
+      "initialUnits": 15
+    },
+    {
+      "id": "C",
+      "name": "西境要塞",
+      "x": 12,
+      "z": 66,
+      "kind": "melee",
+      "owner": 1,
+      "capacity": 200,
+      "radius": 9.3,
+      "upgradePath": "melee_power",
+      "level": 1,
+      "target": null,
+      "initialUnits": 0
+    },
+    {
+      "id": "D",
+      "name": "北岸射場",
+      "x": 39,
+      "z": 13,
+      "kind": "range",
+      "owner": 0,
+      "capacity": 200,
+      "radius": 9.3,
+      "upgradePath": "range_power",
+      "level": 1,
+      "target": null,
+      "initialUnits": 0
+    },
+    {
+      "id": "E",
+      "name": "南岸兵營",
+      "x": 39,
+      "z": 67,
+      "kind": "melee",
+      "owner": 0,
+      "capacity": 200,
+      "radius": 9.3,
+      "upgradePath": "melee_quantity",
+      "level": 1,
+      "target": null,
+      "initialUnits": 0
+    },
+    {
+      "id": "F",
+      "name": "北嶺兵營",
+      "x": 81,
+      "z": 13,
+      "kind": "melee",
+      "owner": 0,
+      "capacity": 200,
+      "radius": 9.3,
+      "upgradePath": "melee_power",
+      "level": 1,
+      "target": null,
+      "initialUnits": 0
+    },
+    {
+      "id": "G",
+      "name": "南嶺射場",
+      "x": 81,
+      "z": 67,
+      "kind": "range",
+      "owner": 0,
+      "capacity": 200,
+      "radius": 9.3,
+      "upgradePath": "range_quantity",
+      "level": 1,
+      "target": null,
+      "initialUnits": 0
+    },
+    {
+      "id": "H",
+      "name": "東境兵營",
+      "x": 108,
+      "z": 14,
+      "kind": "melee",
+      "owner": 2,
+      "capacity": 200,
+      "radius": 9.3,
+      "upgradePath": "melee_quantity",
+      "level": 1,
+      "target": null,
+      "initialUnits": 15
+    },
+    {
+      "id": "I",
+      "name": "東境射場",
+      "x": 108,
+      "z": 40,
+      "kind": "range",
+      "owner": 2,
+      "capacity": 200,
+      "radius": 9.3,
+      "upgradePath": "range_power",
+      "level": 1,
+      "target": null,
+      "initialUnits": 15
+    },
+    {
+      "id": "J",
+      "name": "東境要塞",
+      "x": 108,
+      "z": 66,
+      "kind": "melee",
+      "owner": 2,
+      "capacity": 200,
+      "radius": 9.3,
+      "upgradePath": "melee_power",
+      "level": 1,
+      "target": null,
+      "initialUnits": 15
+    }
+  ],
+  "objectives": {
+    "win": {
+      "type": "conquest"
+    },
+    "lose": {
+      "type": "lostAll"
+    }
+  },
+  "scripts": [
+    {
+      "time": 6,
+      "team": 2,
+      "action": "assign",
+      "point": "H",
+      "target": "F",
+      "message": "紅方先遣隊向北嶺推進"
+    },
+    {
+      "time": 18,
+      "team": 2,
+      "action": "assign",
+      "point": "J",
+      "target": "G",
+      "message": "紅方南線增援"
+    }
+  ],
+  "combat": {
+    "targetSearchInterval": 0.2
+  }
+}

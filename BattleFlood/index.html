@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="theme-color" content="#172323">
+    <meta name="battle-flood-release" content="10">
+    <title>Battle Flood v10 | 爆兵戰場</title>
+    <link rel="stylesheet" href="style.css?v=10">
+</head>
+<body>
+    <main id="app">
+        <!-- 3D: independent of all UI layout. Never put the canvas inside a panel. -->
+        <div id="stage">
+            <canvas id="battle" aria-label="3D 戰場"></canvas>
+            <div id="markers" aria-label="戰場據點"></div>
+        </div>
+
+        <!-- HTML overlay: rearrange these blocks freely; retain binding IDs. -->
+        <div id="ui">
+            <header class="top">
+                <div class="brand">
+                    <span class="brandmark">BF</span>
+                    <div><b>BATTLE FLOOD</b><small>爆兵戰場</small></div>
+                </div>
+                <div id="objective" class="objective">正在建立戰場</div>
+                <div class="top-actions">
+                    <button id="sound" title="聲音">聲音：關</button>
+                    <button id="pause">暫停</button>
+                    <button id="restart">重開</button>
+                    <button id="scenario">壓力測試</button>
+                </div>
+            </header>
+
+            <section class="hud" aria-label="戰局資訊">
+                <div class="metric"><small>資源</small><strong id="resource">0</strong></div>
+                <div class="metric"><small>己方 / 敵方</small><strong id="army">0 / 0</strong></div>
+                <div class="metric"><small>據點 / 總兵力</small><strong id="capacity">0 / 0</strong></div>
+                <div class="metric perf"><small>渲染 / 模擬</small><strong id="perf">—</strong></div>
+                <div class="metric"><small>可視士兵</small><strong id="visible">—</strong></div>
+                <div class="view-switch">
+                    <button id="medium" class="active">戰場</button>
+                    <button id="far">遠距</button>
+                    <button id="strategy">全局</button>
+                </div>
+            </section>
+
+            <section class="workspace">
+                <div class="play-overlay">
+                    <!-- Original SVG strategic map. Only the surrounding UI is HTML. -->
+                    <div id="strategic" hidden>
+                        <svg id="map" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="全局據點指派圖"></svg>
+                    </div>
+                    <div id="hint" class="hint">左鍵拖曳平移・右鍵拖曳旋轉・滾輪縮放・Space 切換己方據點</div>
+                    <div id="status" class="status" role="status"></div>
+                </div>
+
+                <aside id="panel">
+                    <div class="panel-title"><span>據點指揮</span><span id="clock">00:00</span></div>
+                    <div id="selected" class="selected">
+                        <p id="selected-empty">選取據點查看資訊。</p>
+                        <div id="selected-details" hidden>
+                            <h2><span data-field="name"></span> <small data-field="level"></small></h2>
+                            <dl>
+                                <dt>所有權 / 兵種</dt><dd data-field="ownerKind"></dd>
+                                <dt>駐軍 / 生產上限</dt><dd data-field="garrison"></dd>
+                                <dt>生產</dt><dd data-field="production"></dd>
+                                <dt>攻擊 / HP</dt><dd data-field="combat"></dd>
+                                <dt>派遣</dt><dd data-field="target"></dd>
+                                <dt>增援中</dt><dd data-field="incoming"></dd>
+                                <dt>爭奪進度</dt><dd data-field="progress"></dd>
+                            </dl>
+                        </div>
+                    </div>
+                    <div class="commands">
+                        <button id="upgrade" disabled>升級</button>
+                        <button id="focus" disabled>定位戰場</button>
+                    </div>
+                    <div class="panel-title">戰場紀錄</div>
+                    <div id="log" class="log"></div>
+                    <div class="legend">
+                        <span class="dot blue"></span>己方
+                        <span class="dot red"></span>敵方
+                        <span class="dot gray"></span>中立<br>
+                        M：近戰據點　R：遠程據點
+                    </div>
+                </aside>
+            </section>
+
+            <footer>
+                <span id="device">WebGPU</span>
+                <span>固定俯視角度 · 30 Hz 模擬 · 完全公開戰況</span>
+            </footer>
+            <div id="end" class="end" hidden>
+                <h1 id="end-title"></h1>
+                <p id="end-summary"></p>
+                <button id="end-restart">重新開始</button>
+                <button id="end-close">檢視戰況</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Dynamic UI components. Edit these templates instead of JS strings. -->
+    <template id="marker-template">
+        <div class="marker">
+            <b data-field="title"></b>
+            <div class="mini" data-field="garrison"></div>
+            <div class="progress" data-field="progress" hidden></div>
+        </div>
+    </template>
+    <template id="log-template">
+        <div class="log-entry"><small data-field="time"></small> <span data-field="message"></span></div>
+    </template>
+    <div id="loading">
+        <div class="loadbox">
+            <h1>BATTLE FLOOD</h1>
+            <p id="loadmsg">正在初始化 WebGPU…</p>
+            <button id="retry" hidden onclick="location.reload()">重新載入</button>
+        </div>
+    </div>
+    <script type="module" src="src/main.js?v=10"></script>
+</body>
+</html>

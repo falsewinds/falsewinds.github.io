@@ -1,0 +1,188 @@
+/* 1. Theme and UI layout. Change these values to restyle the interface. */
+:root {
+    color-scheme: dark;
+    --bg: #172323;
+    --panel: #202e2eeb;
+    --line: #3b4b47;
+    --ink: #e6ede4;
+    --muted: #a8b7ac;
+    --gold: #d0b575;
+    --blue: #6bb6e8;
+    --red: #ed8274;
+    --ui-padding: 12px;
+    --ui-gap: 10px;
+    --panel-width: 278px;
+    --panel-radius: 10px;
+}
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, "Microsoft JhengHei", sans-serif;
+    font-size: 14px;
+}
+[hidden] { display: none !important; }
+button {
+    font: inherit;
+    font-weight: 600;
+    color: var(--ink);
+    background: #30423f;
+    border: 1px solid #4a6058;
+    border-radius: 7px;
+    padding: 8px 12px;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+button:hover:not(:disabled), button.active { background: #557065; border-color: #a0b5a2; }
+button:disabled { opacity: .38; cursor: default; }
+button:focus-visible { outline: 2px solid var(--gold); }
+
+/* 2. Full-window 3D layer. UI must not change these dimensions. */
+#app, #stage { position: fixed; inset: 0; overflow: hidden; }
+#stage { background: #293e35; }
+#battle, #markers { position: absolute; inset: 0; width: 100%; height: 100%; }
+#battle { display: block; touch-action: none; border: 0; }
+/* Strategic mode covers the scene without collapsing the canvas layout box. */
+#battle.covered { visibility: hidden; }
+#markers { pointer-events: none; overflow: hidden; }
+
+/* 3. HTML overlay. Empty space passes pointer input to the canvas. */
+#ui {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    padding: var(--ui-padding);
+    padding-top: max(var(--ui-padding), env(safe-area-inset-top));
+    padding-right: max(var(--ui-padding), env(safe-area-inset-right));
+    padding-bottom: max(var(--ui-padding), env(safe-area-inset-bottom));
+    padding-left: max(var(--ui-padding), env(safe-area-inset-left));
+    gap: var(--ui-gap);
+    pointer-events: none;
+    min-width: 0;
+    min-height: 0;
+}
+.top, .hud, #panel, #strategic, .end { pointer-events: auto; }
+.top, .hud, #panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--panel-radius);
+}
+.top, .hud { display: flex; align-items: center; gap: 14px; padding: 10px 12px; flex-shrink: 0; }
+.brand { display: flex; gap: 9px; align-items: center; white-space: nowrap; }
+.brandmark { font-size: 18px; font-weight: 900; letter-spacing: -2px; color: #20332d; background: var(--gold); padding: 7px 9px; border-radius: 5px; }
+.brand b { letter-spacing: 1px; font-size: 14px; }
+.brand small { display: block; color: var(--muted); font-size: 11px; }
+.objective { flex: 1; color: var(--gold); font-weight: 600; }
+.top-actions, .view-switch { display: flex; gap: 5px; flex-wrap: wrap; }
+.hud { gap: 15px; padding: 7px 12px; flex-wrap: wrap; }
+.metric { min-width: 80px; display: flex; flex-direction: column; gap: 1px; }
+.metric small { font-size: 11px; color: var(--muted); }
+.metric strong { font-size: 17px; font-variant-numeric: tabular-nums; }
+
+
+
+.view-switch { margin-left: auto; }
+.workspace { display: flex; flex: 1; min-height: 0; min-width: 0; gap: var(--ui-gap); pointer-events: none; }
+.play-overlay { position: relative; flex: 1; min-width: 0; min-height: 0; pointer-events: none; }
+.hint, .status {
+    position: absolute;
+    left: 0;
+    background: #172323d9;
+    border: 1px solid #47594b;
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 12px;
+    pointer-events: none;
+    max-width: 100%;
+    z-index: 1;
+}
+.hint { bottom: 0; color: var(--muted); }
+.status { top: 0; color: var(--gold); display: none; }
+.status.show { display: block; }
+#panel { width: var(--panel-width); flex-shrink: 0; padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow: auto; }
+#panel > :not(.log) { flex-shrink: 0; }
+.panel-title { font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+#selected { min-height: 100px; line-height: 1.65; }
+#selected p { margin: 0; }
+#selected h2 { font-size: 20px; margin: 0 0 5px; color: var(--team, var(--ink)); }
+#selected dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; }
+#selected dt { color: var(--muted); }
+#selected dd { margin: 0; font-variant-numeric: tabular-nums; }
+.commands { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+.commands #upgrade { background: #454c37; }
+
+.log { font-size: 12px; color: #c2cfc3; line-height: 1.6; min-height: 40px; flex: 1; overflow: auto; }
+.log-entry { border-bottom: 1px solid #34443d; padding: 3px 0; }
+.legend { font-size: 11px; color: var(--muted); line-height: 1.8; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-left: 4px; }
+.blue { background: var(--blue); }
+.red { background: var(--red); }
+.gray { background: #b4b9ae; }
+footer { display: flex; justify-content: space-between; gap: 6px; font-size: 11px; color: var(--muted); }
+
+/* 4. World-space labels projected into HTML. They forward gestures to the canvas. */
+.marker { position: absolute; transform: translate(-50%, -100%); border: 1px solid var(--team, #111a); border-radius: 5px; background: #152222e9; color: #fff; padding: 3px 6px; white-space: nowrap; font-size: 11px; line-height: 1.2; pointer-events: auto; cursor: pointer; touch-action: none; min-width: 48px; text-align: center; }
+.marker b { color: var(--team, #fff); }
+.marker.selected { outline: 2px solid var(--gold); min-height: 0; }
+.marker.armed { outline: 3px solid #fff1a3; box-shadow: 0 0 8px #f3d89088; }
+.marker .mini { color: #c3d1cc; font-size: 10px; }
+.marker .progress { height: 3px; background: #d7b76c; margin-top: 2px; border-radius: 2px; }
+
+/* 5. Original SVG strategic map, fitted inside the HTML overlay. */
+#strategic { position: absolute; inset: 0; overflow: hidden; background: #26392f; display: flex; align-items: center; justify-content: center; touch-action: none; }
+#map{width:100%;height:100%;max-height:100%}
+
+/* 6. Dialogs. */
+.end { position: absolute; inset: 0; z-index: 3; background: #14221fce; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 15px; gap: 10px; }
+.end h1 { font-size: 40px; color: var(--gold); margin: 0; }
+.end p { max-width: 480px; }
+#loading { position: fixed; inset: 0; background: #172323; display: flex; align-items: center; justify-content: center; z-index: 30; padding: 20px; }
+.loadbox { max-width: 620px; border: 1px solid var(--line); border-radius: 12px; padding: 28px; background: var(--panel); }
+.loadbox h1 { color: var(--gold); letter-spacing: 3px; }
+.loadbox p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+
+/* 7. Responsive overlay only. Never resize the 3D canvas from these rules. */
+@media (max-width: 800px), (pointer: coarse) {
+    :root { --ui-padding: 6px; --ui-gap: 5px; }
+    .top { flex-wrap: wrap; gap: 5px; padding: 6px; }
+    .brand b { font-size: 12px; }
+    .brandmark { font-size: 14px; padding: 4px 6px; }
+    .brand small { display: none; }
+    .objective { font-size: 12px; order: 3; flex-basis: 100%; }
+    .top-actions { margin-left: auto; }
+    .top-actions button { padding: 5px 7px; font-size: 11px; }
+    .hud { gap: 7px; padding: 5px; }
+    .metric { min-width: 51px; }
+    .metric strong { font-size: 14px; }
+    .metric small { font-size: 10px; }
+
+    .perf { display: none; }
+    .view-switch { margin-left: auto; }
+    .view-switch button { font-size: 11px; padding: 6px; }
+    .workspace { flex-direction: column; }
+    #panel { width: 100%; max-height: 36%; min-height: 120px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; }
+    .panel-title:first-child { grid-column: 1 / -1; }
+    #selected { min-height: 0; font-size: 11px; }
+    #selected h2 { font-size: 15px; }
+    .commands { align-content: start; gap: 4px; }
+    .commands button { font-size: 11px; padding: 6px; }
+    .panel-title:not(:first-child), .log, .legend { display: none; }
+    .hint { font-size: 10px; padding: 4px 6px; }
+    footer { display: none; }
+    .marker { font-size: 10px; }
+    .marker .mini { font-size: 9px; }
+}
+@media (max-height: 500px) {
+    .workspace { flex-direction: row; }
+    #panel { width: min(220px, 35vw); max-height: none; min-height: 0; display: flex; }
+    .top .objective { order: 0; flex-basis: auto; }
+    .top-actions button { font-size: 10px; }
+    .hud { padding: 3px; }
+    #selected { font-size: 11px; }
+    .commands { grid-template-columns: 1fr 1fr; }
+}
+.stress-mode .perf { display: flex; }

@@ -1,0 +1,10 @@
+{
+    "units": {
+        "melee": {"url": null, "height": 1.4, "radius": 0.64, "yawDegrees": 0, "teamTint": 0.75, "maxTriangles": 3000},
+        "range": {"url": null, "height": 1.4, "radius": 0.64, "yawDegrees": 0, "teamTint": 0.75, "maxTriangles": 3000}
+    },
+    "points": {
+        "melee": {"url": null, "height": 2.6, "radius": 1.38, "yawDegrees": 0, "teamTint": 0.75, "maxTriangles": 6000},
+        "range": {"url": null, "height": 2.6, "radius": 1.38, "yawDegrees": 0, "teamTint": 0.75, "maxTriangles": 6000}
+    }
+}
